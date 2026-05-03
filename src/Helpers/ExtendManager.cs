@@ -1,5 +1,6 @@
 using MapChooser.Models;
 using MapChooser.Dependencies;
+using Microsoft.Extensions.Logging;
 using SwiftlyS2.Shared;
 
 namespace MapChooser.Helpers;
@@ -53,7 +54,14 @@ public class ExtendManager
 
         _state.MapChangeScheduled = false;
         _state.EofVoteCompleted = false;
-        _state.NextEofVotePossibleRound = _core.Game.MatchData.TerroristScoreTotal + _core.Game.MatchData.CTScoreTotal + 1;
+        try
+        {
+            _state.NextEofVotePossibleRound = _core.Game.MatchData.TerroristScoreTotal + _core.Game.MatchData.CTScoreTotal + 1;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _core.Logger.LogWarning(ex, "GameRules not available in ExtendManager - leaving NextEofVotePossibleRound unchanged");
+        }
         if (_core.Engine?.GlobalVars != null)
             _state.NextEofVotePossibleTime = _core.Engine.GlobalVars.CurrentTime + 60.0f;
 

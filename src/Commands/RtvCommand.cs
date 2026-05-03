@@ -1,6 +1,7 @@
 using MapChooser.Models;
 using MapChooser.Dependencies;
 using MapChooser.Helpers;
+using Microsoft.Extensions.Logging;
 using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.Commands;
 using SwiftlyS2.Shared.Players;
@@ -50,7 +51,16 @@ public class RtvCommand
 
         if (_config.Rtv.MinRounds > 0)
         {
-            int totalRoundsPlayed = _core.Game.MatchData.TerroristScoreTotal + _core.Game.MatchData.CTScoreTotal;
+            int totalRoundsPlayed;
+            try
+            {
+                totalRoundsPlayed = _core.Game.MatchData.TerroristScoreTotal + _core.Game.MatchData.CTScoreTotal;
+            }
+            catch (InvalidOperationException ex)
+            {
+                _core.Logger.LogWarning(ex, "GameRules not available in RtvCommand - skipping MinRounds check");
+                totalRoundsPlayed = _config.Rtv.MinRounds;
+            }
             if (totalRoundsPlayed < _config.Rtv.MinRounds)
             {
                 player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.general.validation.min_rounds", _config.Rtv.MinRounds - totalRoundsPlayed]);

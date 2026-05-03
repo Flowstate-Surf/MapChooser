@@ -4,6 +4,7 @@ using MapChooser.Helpers;
 using MapChooser.Menu;
 using MapChooser.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.Commands;
 using SwiftlyS2.Shared.Events;
@@ -14,7 +15,7 @@ using SwiftlyS2.Shared.SchemaDefinitions;
 
 namespace MapChooser;
 
-[PluginMetadata(Id = "MapChooser", Version = "1.2.1", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
+[PluginMetadata(Id = "MapChooser", Version = "1.2.2", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
 public sealed class MapChooser : BasePlugin
 {
     private MapChooserConfig _config = new();
@@ -234,7 +235,14 @@ public sealed class MapChooser : BasePlugin
 
     private HookResult OnWinPanelMatch(EventCsWinPanelMatch @event)
     {
-        if (Core.Game.MatchData.Phase == GamePhase.GAMEPHASE_HALFTIME) return HookResult.Continue;
+        try
+        {
+            if (Core.Game.MatchData.Phase == GamePhase.GAMEPHASE_HALFTIME) return HookResult.Continue;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Core.Logger.LogWarning(ex, "GameRules not available in OnWinPanelMatch - proceeding without halftime check");
+        }
 
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
@@ -280,9 +288,17 @@ public sealed class MapChooser : BasePlugin
     {
         if (!_config.EndOfMap.Enabled || _state.EofVoteHappening || _state.MapChangeScheduled || _state.WarmupRunning) return;
 
-        if (Core.Game.MatchData.Phase == GamePhase.GAMEPHASE_HALFTIME) return;
-
-        int totalRoundsPlayed = Core.Game.MatchData.TerroristScoreTotal + Core.Game.MatchData.CTScoreTotal;
+        int totalRoundsPlayed;
+        try
+        {
+            if (Core.Game.MatchData.Phase == GamePhase.GAMEPHASE_HALFTIME) return;
+            totalRoundsPlayed = Core.Game.MatchData.TerroristScoreTotal + Core.Game.MatchData.CTScoreTotal;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Core.Logger.LogWarning(ex, "GameRules not available in CheckAutomatedVote - skipping this tick");
+            return;
+        }
 
         bool pastDueNoMap = _state.EofVoteCompleted && string.IsNullOrEmpty(_state.NextMap);
 
