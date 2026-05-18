@@ -11,6 +11,7 @@ using SwiftlyS2.Shared.Commands;
 using SwiftlyS2.Shared.Events;
 using SwiftlyS2.Shared.GameEventDefinitions;
 using SwiftlyS2.Shared.Misc;
+using SwiftlyS2.Shared.Natives;
 using SwiftlyS2.Shared.Plugins;
 using SwiftlyS2.Shared.SchemaDefinitions;
 
@@ -138,6 +139,7 @@ public sealed class MapChooser : BasePlugin
         _checkVoteTimer = Core.Scheduler.DelayAndRepeat(1000, 1000, () =>
         {
             CheckAutomatedVote();
+            CheckTimelimitExpired();
         });
         Core.Scheduler.StopOnMapChange(_checkVoteTimer);
     }
@@ -179,6 +181,7 @@ public sealed class MapChooser : BasePlugin
         _checkVoteTimer = Core.Scheduler.DelayAndRepeat(1000, 1000, () =>
         {
             CheckAutomatedVote();
+            CheckTimelimitExpired();
         });
         Core.Scheduler.StopOnMapChange(_checkVoteTimer);
     }
@@ -298,17 +301,13 @@ public sealed class MapChooser : BasePlugin
     {
         if (!_config.EndOfMap.Enabled || _state.EofVoteHappening || _state.MapChangeScheduled || _state.WarmupRunning) return;
 
-        int totalRoundsPlayed;
-        try
-        {
-            if (Core.Game.MatchData.Phase == GamePhase.GAMEPHASE_HALFTIME) return;
-            totalRoundsPlayed = Core.Game.MatchData.TerroristScoreTotal + Core.Game.MatchData.CTScoreTotal;
-        }
-        catch (InvalidOperationException ex)
-        {
-            Core.Logger.LogWarning(ex, "GameRules not available in CheckAutomatedVote - skipping this tick");
-            return;
-        }
+        if (Core.EntitySystem.GetGameRules()?.IsValid != true) return;
+
+        CCSMatch match = Core.Game.MatchData;
+
+        if (match.Phase == GamePhase.GAMEPHASE_HALFTIME) return;
+
+        int totalRoundsPlayed = match.TerroristScoreTotal + match.CTScoreTotal;
 
         bool pastDueNoMap = _state.EofVoteCompleted && string.IsNullOrEmpty(_state.NextMap);
 
@@ -394,6 +393,60 @@ public sealed class MapChooser : BasePlugin
                 _state.NextEofVotePossibleTime = Core.Engine.GlobalVars.CurrentTime + _config.EndOfMap.VoteDuration + 1;
             _eofManager.StartVote(_config.EndOfMap.VoteDuration, _config.EndOfMap.MapsToShow);
         }
+    }
+
+    // Watchdog: if mp_timelimit elapses but CS2 doesn't naturally end the match
+    // (e.g. mid-round, no kills, freezetime quirks), force the map to switch.
+    private void CheckTimelimitExpired()
+    {
+        if (_state.MatchEnded || _state.WarmupRunning) return;
+        if (Core.Engine == null) return;
+
+        // Avoid touching gamerules-dependent code while gamerules is invalid /
+        // mid-transition (e.g. just before win-panel) - that's been observed to
+        // crash inside libanimationsystem.so when we trigger map flips at the
+        // exact moment the HUD timer hits 0.
+        if (Core.EntitySystem.GetGameRules()?.IsValid != true) return;
+
+        var timelimitConVar = Core.ConVar.Find<float>("mp_timelimit");
+        float timelimit = timelimitConVar?.Value ?? 0;
+        if (timelimit <= 0) return;
+
+        if (_state.MapStartTime <= 0) return;
+
+        float timePlayed = Core.Engine.GlobalVars.CurrentTime - _state.MapStartTime;
+        float timeRemaining = (timelimit * 60) - timePlayed;
+
+        // Give the game a generous grace window after expiry so the natural
+        // end-of-match flow (OnWinPanelMatch / OnGamePhaseChanged) gets first
+        // crack at switching the map. Only intervene if it never fires.
+        if (timeRemaining > -10) return;
+
+        Core.Logger.LogInformation("mp_timelimit elapsed; forcing map switch.");
+        _state.MatchEnded = true;
+
+        // Defer the actual dispatch off this scheduler tick so we don't poke
+        // entities/gamerules from inside a tick that may itself be mid-frame.
+        Core.Scheduler.DelayBySeconds(1, () =>
+        {
+            try
+            {
+                if (_state.EofVoteHappening)
+                    _eofManager.ForceEnd();
+                else if (_state.MapChangeScheduled)
+                    _changeMapManager.ChangeMap();
+                else if (_config.Cycle.Enabled)
+                    _cycleManager.TriggerCycleChange();
+                else
+                    // Last resort: kick off an EOF vote so the server picks
+                    // something rather than hanging on an expired map.
+                    CheckAutomatedVote(true);
+            }
+            catch (Exception ex)
+            {
+                Core.Logger.LogError(ex, "CheckTimelimitExpired dispatch failed");
+            }
+        });
     }
 
     private void ExecuteCycleMenu(ICommandContext context)
