@@ -264,6 +264,11 @@ public sealed class MapChooser : BasePlugin
             _changeMapManager.ChangeMap();
         else if (_config.Cycle.Enabled)
             _cycleManager.TriggerCycleChange();
+        else
+            // Last-resort fallback: nothing is queued, so start an EOF vote
+            // (or extend the map) immediately. Without this the match just
+            // ends and players sit on an expired map forever.
+            CheckAutomatedVote(true);
         return HookResult.Continue;
     }
 
@@ -279,6 +284,8 @@ public sealed class MapChooser : BasePlugin
             _changeMapManager.ChangeMap();
         else if (_config.Cycle.Enabled)
             _cycleManager.TriggerCycleChange();
+        else
+            CheckAutomatedVote(true);
         return HookResult.Continue;
     }
 
@@ -397,10 +404,15 @@ public sealed class MapChooser : BasePlugin
 
     // Watchdog: if mp_timelimit elapses but CS2 doesn't naturally end the match
     // (e.g. mid-round, no kills, freezetime quirks), force the map to switch.
+    // Also acts as a backstop when the natural EOF flow fires but no vote /
+    // map-change / cycle path was eligible to dispatch.
     private void CheckTimelimitExpired()
     {
-        if (_state.MatchEnded || _state.WarmupRunning) return;
+        if (_state.WarmupRunning) return;
         if (Core.Engine == null) return;
+
+        // If a map change is already queued or a vote is in progress, leave it alone.
+        if (_state.MapChangeScheduled || _state.EofVoteHappening) return;
 
         // Avoid touching gamerules-dependent code while gamerules is invalid /
         // mid-transition (e.g. just before win-panel) - that's been observed to
