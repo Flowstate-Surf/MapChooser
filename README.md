@@ -84,17 +84,49 @@ Each map in `maps.jsonc` carries a `Tier` field (integer) and an optional `Id` (
 
 ## Map Pool (`maps.jsonc`)
 
-Each entry:
+The file lives at `resources/MapChanger/maps.jsonc` and is auto-generated on first run.
+
+**Full file structure:**
 
 ```jsonc
 {
-  "Name": "surf_utopia_njv",
-  "Id": "ws:12345678",   // workshop ID, "ws:<id>", or blank for vanilla
-  "Tier": 2,
-  "MinPlayers": 0,
-  "MaxPlayers": 0
+    "MapChangerMaps": {
+        "Maps": [
+            // Surf — T1
+            { "Name": "surf_aircontrol_ksf T1 | 1B | L", "Id": "3520975981", "Tier": 1 },
+            { "Name": "surf_and_destroy T1 | 2B | L",     "Id": "3574289764", "Tier": 1 },
+            { "Name": "surf_andromeda T1 | 1B | L",       "Id": "3251845607", "Tier": 1 },
+
+            // Surf — T2
+            { "Name": "surf_amplitude_encore T2 | L",     "Id": "3482779824", "Tier": 2 },
+            { "Name": "surf_amir T2 | 1B | L",            "Id": "3429021238", "Tier": 2 },
+
+            // Surf — T3
+            { "Name": "surf_adtr T3 | 1B | S",            "Id": "3602513134", "Tier": 3 },
+            { "Name": "surf_advanced T3 | 1B | S",        "Id": "3433362980", "Tier": 3 },
+
+            // Workshop ID formats:
+            //   Numeric string  → loaded via host_workshop_map <id>
+            //   "ws:<id>"       → same, explicit prefix
+            //   ""              → vanilla changelevel (use Name as the map file)
+
+            // Player-count gating (optional — 0 = no limit)
+            { "Name": "surf_smallmap T1 | S", "Id": "3123456789", "Tier": 1, "MinPlayers": 0, "MaxPlayers": 10 },
+            { "Name": "surf_bigmap T2 | L",   "Id": "3987654321", "Tier": 2, "MinPlayers": 8, "MaxPlayers": 0  }
+        ]
+    }
 }
 ```
+
+**Field reference:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `Name` | string | ✅ | Display name shown in menus and chat |
+| `Id` | string | | Workshop ID (`"3520975981"`), `"ws:<id>"`, or `""` for vanilla maps |
+| `Tier` | int | | Tier number (1–10). Used by the nomination tier picker. `0` or omitted = untierod |
+| `MinPlayers` | int | | Minimum players required. `0` = no minimum |
+| `MaxPlayers` | int | | Maximum players allowed. `0` = no maximum |
 
 The bundled pool ships with **surf T1–T7** and **bhop T1–T10** maps (~886 entries).
 
