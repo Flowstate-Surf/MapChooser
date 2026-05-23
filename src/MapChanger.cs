@@ -178,10 +178,10 @@ public sealed class MapChanger : BasePlugin
         _state.EofVoteCompleted = false;
 
         var workshopId = Core.Engine?.WorkshopId ?? "";
-        _state.CurrentMapId = Core.Engine?.GlobalVars?.MapName?.ToString() ?? @event.MapName ?? "";
+        _state.CurrentMapId = Core.Engine != null ? (Core.Engine.GlobalVars.MapName.ToString() ?? @event.MapName ?? "") : (@event.MapName ?? "");
         _state.CurrentWorkshopId = workshopId;
-        _mapCooldown.OnMapStart(@event.MapName, workshopId);
-        _cycleManager.OnMapStart(@event.MapName, workshopId);
+        _mapCooldown.OnMapStart(@event.MapName ?? "", workshopId);
+        _cycleManager.OnMapStart(@event.MapName ?? "", workshopId);
 
         _checkVoteTimer = Core.Scheduler.DelayAndRepeat(1000, 1000, () =>
         {
