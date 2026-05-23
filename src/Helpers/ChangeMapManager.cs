@@ -54,16 +54,14 @@ public class ChangeMapManager
         _state.IsRtv = false;
         _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.changing_map", map.Name, delay]);
 
-        foreach (var player in _core.PlayerManager.GetAllPlayers())
-        {
-            if (!player.IsValid) continue;
-            if (player.IsFakeClient)
-                player.Kick("map change", ENetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
-            else
-                player.Respawn();
-        }
-        
         _core.Scheduler.DelayBySeconds(delay, () => {
+            foreach (var player in _core.PlayerManager.GetAllPlayers())
+            {
+                if (!player.IsValid) continue;
+                if (player.IsFakeClient)
+                    player.Kick("map change", ENetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
+            }
+
             if (!string.IsNullOrEmpty(map.Id) && (map.Id.StartsWith("ws:") || long.TryParse(map.Id, out _)))
             {
                 string workshopId = map.Id.StartsWith("ws:") ? map.Id.Substring(3) : map.Id;
