@@ -99,8 +99,8 @@ public class EndOfMapVoteManager
         _playerVotes.Clear();
         _playersReceivedMenu.Clear();
 
-        var currentMapId = _core.Engine.GlobalVars.MapName.ToString();
-        var currentWorkshopId = _core.Engine.WorkshopId;
+        var currentMapId = _state.CurrentMapId;
+        var currentWorkshopId = _state.CurrentWorkshopId;
 
         var playerCount = _core.PlayerManager.GetAllPlayers()
             .Count(p => p.IsValid && !p.IsFakeClient);

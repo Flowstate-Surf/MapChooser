@@ -58,8 +58,8 @@ public class MapCycleManager
         Map nextMap;
         if (_config.Cycle.RandomOrder)
         {
-            var currentMapName = _core.Engine?.GlobalVars.MapName.ToString() ?? "";
-            var currentWorkshopId = _core.Engine?.WorkshopId ?? "";
+            var currentMapName = _state.CurrentMapId;
+            var currentWorkshopId = _state.CurrentWorkshopId;
             var candidates = maps.Where(m =>
                 !m.Name.Equals(currentMapName, StringComparison.OrdinalIgnoreCase) &&
                 (string.IsNullOrEmpty(m.Id) || !m.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) &&

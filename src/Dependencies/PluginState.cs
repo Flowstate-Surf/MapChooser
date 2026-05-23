@@ -21,4 +21,6 @@ public class PluginState
     public bool MatchEnded { get; set; }
     public bool EofVoteCompleted { get; set; }
     public Dictionary<int, string> Nominations { get; set; } = new();
+    public string CurrentMapId { get; set; } = "";
+    public string CurrentWorkshopId { get; set; } = "";
 }
