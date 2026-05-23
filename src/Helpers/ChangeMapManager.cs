@@ -61,7 +61,7 @@ public class ChangeMapManager
             }
             else
             {
-                _core.Engine.ExecuteCommandWithBuffer($"changelevel {map.Id ?? map.Name}", _ => { });
+                _core.Engine.ExecuteCommandWithBuffer($"changelevel {map.Id}", _ => { });
             }
         });
     }
