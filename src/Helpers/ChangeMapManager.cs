@@ -57,12 +57,10 @@ public class ChangeMapManager
             if (!string.IsNullOrEmpty(map.Id) && (map.Id.StartsWith("ws:") || long.TryParse(map.Id, out _)))
             {
                 string workshopId = map.Id.StartsWith("ws:") ? map.Id.Substring(3) : map.Id;
-                _core.Engine.ExecuteCommandWithBuffer($"nextlevel {map.Name}", _ => { });
                 _core.Engine.ExecuteCommandWithBuffer($"host_workshop_map {workshopId}", _ => { });
             }
             else
             {
-                _core.Engine.ExecuteCommandWithBuffer($"nextlevel {map.Name}", _ => { });
                 _core.Engine.ExecuteCommandWithBuffer($"changelevel {map.Id ?? map.Name}", _ => { });
             }
         });
