@@ -54,14 +54,15 @@ public class ChangeMapManager
         _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.changing_map", map.Name, delay]);
 
         _core.Scheduler.DelayBySeconds(delay, () => {
+            if (_core.Engine == null) return;
             if (!string.IsNullOrEmpty(map.Id) && (map.Id.StartsWith("ws:") || long.TryParse(map.Id, out _)))
             {
                 string workshopId = map.Id.StartsWith("ws:") ? map.Id.Substring(3) : map.Id;
-                _core.Engine.ExecuteCommandWithBuffer($"host_workshop_map {workshopId}", _ => { });
+                _core.Engine.ExecuteCommand($"host_workshop_map {workshopId}");
             }
             else
             {
-                _core.Engine.ExecuteCommandWithBuffer($"changelevel {map.Id}", _ => { });
+                _core.Engine.ExecuteCommand($"changelevel {map.Id}");
             }
         });
     }
