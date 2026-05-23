@@ -177,8 +177,17 @@ public sealed class MapChanger : BasePlugin
         _state.MatchEnded = false;
         _state.EofVoteCompleted = false;
 
-        var workshopId = Core.Engine?.WorkshopId ?? "";
-        _state.CurrentMapId = Core.Engine != null ? (Core.Engine.GlobalVars.MapName.ToString() ?? @event.MapName ?? "") : (@event.MapName ?? "");
+        string workshopId;
+        try
+        {
+            workshopId = Core.Engine?.WorkshopId ?? "";
+            _state.CurrentMapId = Core.Engine != null ? (Core.Engine.GlobalVars.MapName.ToString() ?? @event.MapName ?? "") : (@event.MapName ?? "");
+        }
+        catch
+        {
+            workshopId = "";
+            _state.CurrentMapId = @event.MapName ?? "";
+        }
         _state.CurrentWorkshopId = workshopId;
         _mapCooldown.OnMapStart(@event.MapName ?? "", workshopId);
         _cycleManager.OnMapStart(@event.MapName ?? "", workshopId);
