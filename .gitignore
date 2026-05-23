@@ -1,0 +1,32 @@
+## .NET / VS
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
+
+## Build artifacts
+*.dll
+*.pdb
+*.exe
+*.cache
+*.log
+
+## OS
+Thumbs.db
+.DS_Store
+
+## NuGet
+*.nupkg
+.nuget/
+
+## SwiftlyS2 local outputs
+publish/
+addons/

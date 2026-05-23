@@ -1,0 +1,295 @@
+{
+    "callstack": {
+        "native": {
+            "captureMethod": "backtrace (captured in signal handler) + dladdr",
+            "frameCount": 5,
+            "frames": [
+                {
+                    "address": "0x000073C28B03D9F9",
+                    "baseAddress": "0x000073C28AC00000",
+                    "index": 0,
+                    "module": "/home/container/game/csgo/addons/swiftlys2/bin/linuxsteamrt64/swiftlys2.so",
+                    "offset": "+0x43D9F9",
+                    "symbol": "UNKNOWN"
+                },
+                {
+                    "address": "0x000073C284C15DAA",
+                    "baseAddress": "0x000073C284600000",
+                    "index": 1,
+                    "module": "/home/container/game/csgo/addons/swiftlys2/bin/managed/dotnet/shared/Microsoft.NETCore.App/10.0.7/libcoreclr.so",
+                    "offset": "+0x615DAA",
+                    "symbol": "UNKNOWN"
+                },
+                {
+                    "address": "0x000073C284C152F0",
+                    "baseAddress": "0x000073C284600000",
+                    "index": 2,
+                    "module": "/home/container/game/csgo/addons/swiftlys2/bin/managed/dotnet/shared/Microsoft.NETCore.App/10.0.7/libcoreclr.so",
+                    "offset": "+0x6152F0",
+                    "symbol": "UNKNOWN"
+                },
+                {
+                    "address": "0x000073C30CCB3140",
+                    "baseAddress": "0x000073C30CCA0000",
+                    "index": 3,
+                    "module": "/lib/x86_64-linux-gnu/libpthread.so.0",
+                    "offset": "+0x13140",
+                    "symbol": "UNKNOWN"
+                },
+                {
+                    "address": "0x000073C2CA636ABB",
+                    "baseAddress": "0x000073C2CA000000",
+                    "index": 4,
+                    "module": "/home/container/game/bin/linuxsteamrt64/libanimationsystem.so",
+                    "offset": "+0x636ABB",
+                    "symbol": "UNKNOWN"
+                }
+            ]
+        }
+    },
+    "exception": {
+        "accessViolation": {
+            "address": "0x0000000000000000",
+            "type": "UNKNOWN"
+        },
+        "address": "0x0000000000000000",
+        "code": "0x0000000B",
+        "codeName": "SIGSEGV",
+        "errno": 0,
+        "siCode": 128
+    },
+    "memory": {
+        "availablePhysical": 2129084416,
+        "availableVirtual": 6418804736,
+        "memoryLoad": 96,
+        "totalPhysical": 67339575296,
+        "totalVirtual": 71634538496
+    },
+    "nativeVersion": "1.3.5-beta.19",
+    "processId": 145,
+    "registers": {
+        "control": {
+            "contextFlags": "Linux ucontext"
+        },
+        "debug": {
+            "dr0": "N/A",
+            "dr1": "N/A",
+            "dr2": "N/A",
+            "dr3": "N/A",
+            "dr6": "N/A",
+            "dr7": "N/A"
+        },
+        "general": {
+            "r10": "0x000063AF170DDB50",
+            "r11": "0x0000000000000B75",
+            "r12": "0x000073C286748318",
+            "r13": "0x000073C2867483C8",
+            "r14": "0x000073C287696C40",
+            "r15": "0x000073C2434C1538",
+            "r8": "0x0000000000000001",
+            "r9": "0x000073C30BCD7480",
+            "rax": "0x0028EFCFD0C02EEF",
+            "rbp": "0x00007FFF53DF8D40",
+            "rbx": "0x000073C287696C00",
+            "rcx": "0x00000008C1294D60",
+            "rdi": "0x000073C240E00000",
+            "rdx": "0x000073C243FBF398",
+            "rsi": "0x000073C243FBF398",
+            "rsp": "0x00007FFF53DF8D00"
+        },
+        "general32": {
+            "eax": "0xD0C02EEF",
+            "ebp": "0x53DF8D40",
+            "ebx": "0x87696C00",
+            "ecx": "0xC1294D60",
+            "edi": "0x40E00000",
+            "edx": "0x43FBF398",
+            "esi": "0x43FBF398",
+            "esp": "0x53DF8D00"
+        },
+        "legacy": {
+            "ah": "0x2E",
+            "al": "0xEF",
+            "ax": "0x2EEF",
+            "bh": "0x6C",
+            "bl": "0x00",
+            "bx": "0x6C00",
+            "ch": "0x4D",
+            "cl": "0x60",
+            "cx": "0x4D60",
+            "dh": "0xF3",
+            "dl": "0x98",
+            "dx": "0xF398"
+        },
+        "rflags": {
+            "bits": {
+                "AC": 0,
+                "AF": 0,
+                "CF": 0,
+                "DF": 0,
+                "ID": 0,
+                "IF": 1,
+                "IOPL": 0,
+                "NT": 0,
+                "OF": 0,
+                "PF": 1,
+                "RF": 1,
+                "SF": 0,
+                "TF": 0,
+                "VIF": 0,
+                "VIP": 0,
+                "VM": 0,
+                "ZF": 0
+            },
+            "raw": "0x0000000000010206"
+        },
+        "rip": "0x000073C2CA636ABB",
+        "segments": {
+            "cs": "0x0033",
+            "ds": "N/A",
+            "es": "N/A",
+            "fs": "0x0000",
+            "gs": "0x0000",
+            "ss": "N/A"
+        },
+        "stackInfo": {
+            "frameSize": "0x40 (64 bytes)",
+            "rbp": "0x00007FFF53DF8D40",
+            "rsp": "0x00007FFF53DF8D00"
+        },
+        "xmm": {
+            "fpuControlWord": "0x037F",
+            "fpuStatusWord": "0x0000",
+            "fpuTagWord": "0x0000",
+            "mxcsr": "0x00001FBF",
+            "xmm0": {
+                "full": "0x00000000000000000000000000000000",
+                "high": "0x0000000000000000",
+                "low": "0x0000000000000000"
+            },
+            "xmm1": {
+                "full": "0x000073C28770A000000073C287708C00",
+                "high": "0x000073C28770A000",
+                "low": "0x000073C287708C00"
+            },
+            "xmm10": {
+                "full": "0x0000000000000000000000004516DDDC",
+                "high": "0x0000000000000000",
+                "low": "0x000000004516DDDC"
+            },
+            "xmm11": {
+                "full": "0x000000000000000000000000441E1920",
+                "high": "0x0000000000000000",
+                "low": "0x00000000441E1920"
+            },
+            "xmm12": {
+                "full": "0x000000000000000000000000441E1920",
+                "high": "0x0000000000000000",
+                "low": "0x00000000441E1920"
+            },
+            "xmm13": {
+                "full": "0x0000000000000000000000004516DDDC",
+                "high": "0x0000000000000000",
+                "low": "0x000000004516DDDC"
+            },
+            "xmm14": {
+                "full": "0x0000000000000000000000004413931A",
+                "high": "0x0000000000000000",
+                "low": "0x000000004413931A"
+            },
+            "xmm15": {
+                "full": "0x00000000000000000000000044106CE6",
+                "high": "0x0000000000000000",
+                "low": "0x0000000044106CE6"
+            },
+            "xmm2": {
+                "full": "0x000073C287708800000073C287708400",
+                "high": "0x000073C287708800",
+                "low": "0x000073C287708400"
+            },
+            "xmm3": {
+                "full": "0x000073C28770A800000073C28770A400",
+                "high": "0x000073C28770A800",
+                "low": "0x000073C28770A400"
+            },
+            "xmm4": {
+                "full": "0x000073C2440FE800000073C244102000",
+                "high": "0x000073C2440FE800",
+                "low": "0x000073C244102000"
+            },
+            "xmm5": {
+                "full": "0x000073C24410C800000073C244110000",
+                "high": "0x000073C24410C800",
+                "low": "0x000073C244110000"
+            },
+            "xmm6": {
+                "full": "0x000073C244158800000073C2441B3000",
+                "high": "0x000073C244158800",
+                "low": "0x000073C2441B3000"
+            },
+            "xmm7": {
+                "full": "0x000073C2441BD800000073C2441D0000",
+                "high": "0x000073C2441BD800",
+                "low": "0x000073C2441D0000"
+            },
+            "xmm8": {
+                "full": "0x000073C2B9505400000073C294373080",
+                "high": "0x000073C2B9505400",
+                "low": "0x000073C294373080"
+            },
+            "xmm9": {
+                "full": "0x00000000000000000000000000000000",
+                "high": "0x0000000000000000",
+                "low": "0x0000000000000000"
+            }
+        }
+    },
+    "stackMemory": {
+        "data": {
+            "0x00007FFF53DF8CC0": "0x000073C287696410",
+            "0x00007FFF53DF8CC8": "0x000073C286749548",
+            "0x00007FFF53DF8CD0": "0x00007FFF53DF8CF0",
+            "0x00007FFF53DF8CD8": "0x000073C287696C00",
+            "0x00007FFF53DF8CE0": "0x000073C2867482C8",
+            "0x00007FFF53DF8CE8": "0x000073C287696C00",
+            "0x00007FFF53DF8CF0": "0x00007FFF53DF8D40",
+            "0x00007FFF53DF8CF8": "0x000073C2CA636ABD",
+            "0x00007FFF53DF8D00": "0x000063AF170DDCF0",
+            "0x00007FFF53DF8D00Note": "RSP",
+            "0x00007FFF53DF8D08": "0x000073C30C57C04D",
+            "0x00007FFF53DF8D10": "0x000073C243E507A0",
+            "0x00007FFF53DF8D18": "0x000073C243E54340",
+            "0x00007FFF53DF8D20": "0x000073C287696C00",
+            "0x00007FFF53DF8D28": "0x000073C286855E48",
+            "0x00007FFF53DF8D30": "0x0000000000000000",
+            "0x00007FFF53DF8D38": "0x000073C2434C1538",
+            "0x00007FFF53DF8D40": "0x00007FFF53DF8D60",
+            "0x00007FFF53DF8D40Note": "RBP",
+            "0x00007FFF53DF8D48": "0x000073C2CA615E20",
+            "0x00007FFF53DF8D50": "0x000073C2870DD000",
+            "0x00007FFF53DF8D58": "0x000073C2868559D8",
+            "0x00007FFF53DF8D60": "0x00007FFF53DF8DB0",
+            "0x00007FFF53DF8D68": "0x000073C2CA636ABD",
+            "0x00007FFF53DF8D70": "0x000073C2434C0818",
+            "0x00007FFF53DF8D78": "0x000073C2434C1780",
+            "0x00007FFF53DF8D80": "0x000063AF170DDBF8",
+            "0x00007FFF53DF8D88": "0x000073A1E5045968",
+            "0x00007FFF53DF8D90": "0x000073C2CAC78100",
+            "0x00007FFF53DF8D98": "0x000073C2870DD000",
+            "0x00007FFF53DF8DA0": "0x000073A1E5045800",
+            "0x00007FFF53DF8DA8": "0x000073A1E5045980",
+            "0x00007FFF53DF8DB0": "0x00007FFF53DF8E10",
+            "0x00007FFF53DF8DB8": "0x000073C2CA4C8E74"
+        },
+        "dumpSize": 256,
+        "dumpStart": "0x00007FFF53DF8CC0"
+    },
+    "system": {
+        "numberOfProcessors": "N/A",
+        "pageSize": "N/A",
+        "processorArchitecture": "x86_64"
+    },
+    "threadId": 127138931926784,
+    "timestamp": "2026-05-22 00:18:51 UTC+00:00",
+    "timestampUTC": 1779409131
+}
