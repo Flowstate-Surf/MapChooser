@@ -197,6 +197,15 @@ public sealed class MapChanger : BasePlugin
             CheckAutomatedVote();
         });
         Core.Scheduler.StopOnMapChange(_checkVoteTimer);
+
+        // Disable CS2's native map-change flow — the plugin owns all map changes.
+        // This overrides any cfg (e.g. map_voting.cfg) that re-enables them after map start.
+        if (Core.Engine != null)
+        {
+            Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+            Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+            Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
+        }
     }
 
     private HookResult OnRoundStart(EventRoundStart @event)
@@ -281,6 +290,7 @@ public sealed class MapChanger : BasePlugin
             Core.Logger.LogDebug(ex, "GameRules not available in OnWinPanelMatch - proceeding without halftime check");
         }
 
+        if (_state.MatchEnded) return HookResult.Continue;
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
             _eofManager.ForceEnd();
@@ -308,6 +318,7 @@ public sealed class MapChanger : BasePlugin
     {
         _checkVoteTimer?.Cancel();
         _checkVoteTimer = null;
+        _eofManager?.Shutdown();
         return HookResult.Continue;
     }
 
@@ -343,7 +354,7 @@ public sealed class MapChanger : BasePlugin
 
     private void CheckAutomatedVote(bool force = false)
     {
-        if (!_config.EndOfMap.Enabled || _state.EofVoteHappening || _state.MapChangeScheduled || _state.WarmupRunning) return;
+        if (!_config.EndOfMap.Enabled || _state.EofVoteHappening || _state.MapChangeScheduled || _state.ChangeMapImmediately || _state.WarmupRunning) return;
 
         int totalRoundsPlayed;
         try
@@ -401,35 +412,49 @@ public sealed class MapChanger : BasePlugin
 
         if (!trigger && winlimit > 0)
         {
-            var teams = Core.EntitySystem.GetAllEntitiesByClass<CCSTeam>();
-            int maxTeamScore = 0;
-            foreach (var team in teams)
+            try
             {
-                int score = team.ScoreFirstHalf + team.ScoreSecondHalf + team.ScoreOvertime;
-                if (score > maxTeamScore) maxTeamScore = score;
-            }
+                var teams = Core.EntitySystem.GetAllEntitiesByClass<CCSTeam>();
+                int maxTeamScore = 0;
+                foreach (var team in teams)
+                {
+                    int score = team.ScoreFirstHalf + team.ScoreSecondHalf + team.ScoreOvertime;
+                    if (score > maxTeamScore) maxTeamScore = score;
+                }
 
-            if (winlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
+                if (winlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
+                {
+                    trigger = true;
+                }
+            }
+            catch (Exception ex)
             {
-                trigger = true;
+                Core.Logger.LogDebug(ex, "MapChanger: EntitySystem access failed in winlimit check");
             }
         }
 
         // When mp_winlimit is not set, CS2 still ends the match when a team wins (maxrounds/2)+1 rounds
         if (!trigger && winlimit == 0 && maxrounds > 0)
         {
-            int effectiveWinlimit = maxrounds / 2 + 1;
-            var teams = Core.EntitySystem.GetAllEntitiesByClass<CCSTeam>();
-            int maxTeamScore = 0;
-            foreach (var team in teams)
+            try
             {
-                int score = team.ScoreFirstHalf + team.ScoreSecondHalf + team.ScoreOvertime;
-                if (score > maxTeamScore) maxTeamScore = score;
-            }
+                int effectiveWinlimit = maxrounds / 2 + 1;
+                var teams = Core.EntitySystem.GetAllEntitiesByClass<CCSTeam>();
+                int maxTeamScore = 0;
+                foreach (var team in teams)
+                {
+                    int score = team.ScoreFirstHalf + team.ScoreSecondHalf + team.ScoreOvertime;
+                    if (score > maxTeamScore) maxTeamScore = score;
+                }
 
-            if (effectiveWinlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
+                if (effectiveWinlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
+                {
+                    trigger = true;
+                }
+            }
+            catch (Exception ex)
             {
-                trigger = true;
+                Core.Logger.LogDebug(ex, "MapChanger: EntitySystem access failed in effective-winlimit check");
             }
         }
 

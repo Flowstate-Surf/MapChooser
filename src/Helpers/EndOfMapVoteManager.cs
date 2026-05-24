@@ -2,6 +2,7 @@ using MapChanger.Models;
 using MapChanger.Dependencies;
 using MapChanger.Helpers;
 using MapChanger.Menu;
+using Microsoft.Extensions.Logging;
 using SwiftlyS2.Core.Menus.OptionsBase;
 using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.Menus;
@@ -59,6 +60,23 @@ public class EndOfMapVoteManager
     public bool HasPlayerVoted(int playerSlot)
     {
         return _playerVotes.ContainsKey(playerSlot);
+    }
+
+    /// <summary>
+    /// Called from OnMapShutdown — stops all vote loops without touching player/menu APIs
+    /// (which may be in a torn-down state during level change).
+    /// </summary>
+    public void Shutdown()
+    {
+        _voteSessionId++;   // invalidates any queued RunVoteTimer callbacks
+        _voteActive = false;
+        _state.EofVoteHappening = false;
+        _isRtvVote = false;
+        _votes.Clear();
+        _playerVotes.Clear();
+        _playersReceivedMenu.Clear();
+        _activeVoteMenus.Clear();
+        _mapsInVote.Clear();
     }
 
     public void ResetVote()
@@ -219,19 +237,28 @@ public class EndOfMapVoteManager
 
     private void RunVoteTimer(int sessionId)
     {
-        if (!_voteActive) return;
-        if (sessionId != _voteSessionId) return;
-
-        int timeRemaining = (int)Math.Max(0, Math.Ceiling((_voteEndTime - DateTime.Now).TotalSeconds));
-        
-        if (timeRemaining <= 0)
+        try
         {
-            EndVote(sessionId);
-            return;
-        }
+            if (!_voteActive) return;
+            if (sessionId != _voteSessionId) return;
 
-        RefreshVoteMenu();
-        _core.Scheduler.DelayBySeconds(1, () => RunVoteTimer(sessionId));
+            int timeRemaining = (int)Math.Max(0, Math.Ceiling((_voteEndTime - DateTime.Now).TotalSeconds));
+
+            if (timeRemaining <= 0)
+            {
+                EndVote(sessionId);
+                return;
+            }
+
+            RefreshVoteMenu();
+            _core.Scheduler.DelayBySeconds(1, () => RunVoteTimer(sessionId));
+        }
+        catch (Exception ex)
+        {
+            _core.Logger.LogWarning(ex, "MapChanger: RunVoteTimer error — stopping vote timer");
+            _voteActive = false;
+            _state.EofVoteHappening = false;
+        }
     }
 
     private void RefreshVoteMenu(bool forceOpen = false)

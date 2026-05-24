@@ -76,7 +76,8 @@ public class NominateCommand
         }
         var localizer = _core.Translation.GetPlayerLocalizer(player);
         var currentMapName = _core.ConVar.FindAsString("mapname")?.ValueAsString;
-        var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Contains(mapName, StringComparison.OrdinalIgnoreCase) || (m.Id != null && m.Id.Equals(mapName, StringComparison.OrdinalIgnoreCase)));
+        var filteredMaps = MapFilter.Apply(_mapLister.Maps, _config.Nomination);
+        var map = filteredMaps.FirstOrDefault(m => m.Name.Contains(mapName, StringComparison.OrdinalIgnoreCase) || (m.Id != null && m.Id.Equals(mapName, StringComparison.OrdinalIgnoreCase)));
         if (map == null)
         {
             player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.nominate.not_found", mapName]);

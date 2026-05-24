@@ -26,8 +26,18 @@ public class NominateMenu
 
     public void Show(IPlayer player, Action<IPlayer, string> onNominate)
     {
-        var currentMapId = _core.Engine.GlobalVars.MapName.ToString();
-        var currentWorkshopId = _core.Engine.WorkshopId;
+        string currentMapId;
+        string? currentWorkshopId;
+        try
+        {
+            currentMapId = _core.Engine?.GlobalVars.MapName.ToString() ?? "";
+            currentWorkshopId = _core.Engine?.WorkshopId;
+        }
+        catch
+        {
+            currentMapId = "";
+            currentWorkshopId = null;
+        }
         var playerCount = _core.PlayerManager.GetAllPlayers()
             .Count(p => p.IsValid && !p.IsFakeClient);
 

@@ -47,8 +47,17 @@ public class MapCooldown
         // Verify it's not the current map
         if (_core.Engine == null) return false;
 
-        var currentMapName = _core.Engine.GlobalVars.MapName.ToString().ToLower();
-        var currentWorkshopId = _core.Engine.WorkshopId.ToLower();
+        string currentMapName;
+        string currentWorkshopId;
+        try
+        {
+            currentMapName = _core.Engine.GlobalVars.MapName.ToString()?.ToLower() ?? "";
+            currentWorkshopId = _core.Engine.WorkshopId?.ToLower() ?? "";
+        }
+        catch
+        {
+            return false;
+        }
 
         if (identity == currentMapName || (!string.IsNullOrEmpty(currentWorkshopId) && identity == currentWorkshopId))
             return false;

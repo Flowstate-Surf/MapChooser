@@ -8,7 +8,7 @@ public class RtvConfig
     public int MinPlayers { get; set; } = 0;
     public int MinRounds { get; set; } = 0;
     public bool ChangeMapImmediately { get; set; } = true;
-    public int ChangeMapDelay { get; set; } = 3;
+    public int ChangeMapDelay { get; set; } = 5;
     public int MapsToShow { get; set; } = 6;
     public int VoteDuration { get; set; } = 30;
     public int VotePercentage { get; set; } = 60;

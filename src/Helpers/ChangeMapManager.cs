@@ -49,9 +49,20 @@ public class ChangeMapManager
         var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Equals(mapName, StringComparison.OrdinalIgnoreCase));
         if (map == null) return;
 
-        int delay = _state.IsRtv ? _config.Rtv.ChangeMapDelay : _config.EndOfMap.ChangeMapDelay;
+        bool wasRtv = _state.IsRtv;
+        int delay = wasRtv ? _config.Rtv.ChangeMapDelay : _config.EndOfMap.ChangeMapDelay;
         _state.IsRtv = false;
         _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.changing_map", map.Name, delay]);
+
+        if (wasRtv && !_state.MatchEnded)
+        {
+            _state.MatchEnded = true;
+            if (_core.Engine != null)
+            {
+                _core.Engine.ExecuteCommand("mp_endmatch_votenextlevel 0");
+                _core.Engine.ExecuteCommand("mp_forcewin 2");
+            }
+        }
 
         _core.Scheduler.DelayBySeconds(delay, () => {
             if (_core.Engine == null) return;
