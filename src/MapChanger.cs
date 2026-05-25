@@ -49,6 +49,7 @@ public sealed class MapChanger : BasePlugin
     private RemoveMapCommand _removeMapCmd = null!;
 
     private CancellationTokenSource? _checkVoteTimer;
+    private CancellationTokenSource? _convarGuard;
 
     public MapChanger(ISwiftlyCore core) : base(core)
     {
@@ -140,7 +141,7 @@ public sealed class MapChanger : BasePlugin
         Core.Event.OnMapLoad += OnMapLoad;
         Core.Event.OnClientDisconnected += OnClientDisconnected;
 
-        _checkVoteTimer = Core.Scheduler.DelayAndRepeat(1000, 1000, () =>
+        _checkVoteTimer = Core.Scheduler.DelayAndRepeatBySeconds(1f, 1f, () =>
         {
             CheckAutomatedVote();
         });
@@ -194,7 +195,7 @@ public sealed class MapChanger : BasePlugin
         _mapCooldown.OnMapStart(@event.MapName ?? "", workshopId);
         _cycleManager.OnMapStart(@event.MapName ?? "", workshopId);
 
-        _checkVoteTimer = Core.Scheduler.DelayAndRepeat(1000, 1000, () =>
+        _checkVoteTimer = Core.Scheduler.DelayAndRepeatBySeconds(1f, 1f, () =>
         {
             CheckAutomatedVote();
         });
@@ -209,7 +210,8 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
         }
-        var convarGuard = Core.Scheduler.DelayAndRepeat(5000, 30000, () =>
+        _convarGuard?.Cancel();
+        _convarGuard = Core.Scheduler.DelayAndRepeatBySeconds(5f, 30f, () =>
         {
             if (Core.Engine != null)
             {
@@ -218,7 +220,7 @@ public sealed class MapChanger : BasePlugin
                 Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
             }
         });
-        Core.Scheduler.StopOnMapChange(convarGuard);
+        Core.Scheduler.StopOnMapChange(_convarGuard);
 
         if (_config.EmptyMapSwitcher.Enabled)
             _emptyMapSwitcher.Start(_config.EmptyMapSwitcher.IntervalSeconds);
@@ -345,6 +347,8 @@ public sealed class MapChanger : BasePlugin
     {
         _checkVoteTimer?.Cancel();
         _checkVoteTimer = null;
+        _convarGuard?.Cancel();
+        _convarGuard = null;
         _eofManager?.Shutdown();
         return HookResult.Continue;
     }
