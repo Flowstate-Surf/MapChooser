@@ -54,7 +54,9 @@ public class ChangeMapManager
         _state.IsRtv = false;
         _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.changing_map", map.Name, delay]);
 
-        if (wasRtv && !_state.MatchEnded)
+        // Mark match ended regardless of trigger source — prevents WinPanelMatch/
+        // GamePhaseChanged from firing a second ChangeMap (cycle double-changelevel crash)
+        if (!_state.MatchEnded)
             _state.MatchEnded = true;
 
         _core.Scheduler.DelayBySeconds(delay, () => {

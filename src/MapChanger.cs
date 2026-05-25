@@ -312,7 +312,7 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
         }
-        if (_state.MatchEnded) return HookResult.Continue;
+        if (_state.MatchEnded || _state.ChangeMapImmediately) return HookResult.Continue;
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
             _eofManager.ForceEnd();
@@ -330,7 +330,7 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
         }
-        if (_state.MatchEnded || _state.WarmupRunning) return HookResult.Continue;
+        if (_state.MatchEnded || _state.ChangeMapImmediately || _state.WarmupRunning) return HookResult.Continue;
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
             _eofManager.ForceEnd();
@@ -357,7 +357,7 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
         }
-        if (_state.MatchEnded) return HookResult.Continue;
+        if (_state.MatchEnded || _state.ChangeMapImmediately) return HookResult.Continue;
 
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
