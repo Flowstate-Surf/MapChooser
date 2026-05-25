@@ -155,14 +155,14 @@ public sealed class MapChanger : BasePlugin
         _state.EofVoteHappening = false;
         _state.NextMap = null;
         _state.RoundsPlayed = 0;
-        try
-        {
-            _state.MapStartTime = Core.Engine is { } e ? e.GlobalVars.CurrentTime : 0;
-        }
-        catch
-        {
-            _state.MapStartTime = 0;
-        }
+        // GlobalVars dereferences a native pointer via Unsafe.AsRef; if the pointer is
+        // zero during early OnMapLoad it causes a native AV that try/catch cannot catch.
+        // Gate all GlobalVars access on gamerules existence, which confirms the engine
+        // is fully initialised.
+        var gameRules = Core.EntitySystem.GetGameRules();
+        bool engineReady = gameRules?.IsValid == true && Core.Engine != null;
+
+        _state.MapStartTime = engineReady ? Core.Engine!.GlobalVars.CurrentTime : 0;
 
         _state.RtvCooldownEndTime = null;
         _state.ExtendVoteCooldownEndTime = null;
@@ -178,17 +178,10 @@ public sealed class MapChanger : BasePlugin
         _state.MatchEnded = false;
         _state.EofVoteCompleted = false;
 
-        string workshopId;
-        try
-        {
-            workshopId = Core.Engine?.WorkshopId ?? "";
-            _state.CurrentMapId = Core.Engine != null ? (Core.Engine.GlobalVars.MapName.ToString() ?? @event.MapName ?? "") : (@event.MapName ?? "");
-        }
-        catch
-        {
-            workshopId = "";
-            _state.CurrentMapId = @event.MapName ?? "";
-        }
+        string workshopId = engineReady ? Core.Engine!.WorkshopId : "";
+        _state.CurrentMapId = engineReady
+            ? (Core.Engine!.GlobalVars.MapName.Value ?? @event.MapName ?? "")
+            : (@event.MapName ?? "");
         _state.CurrentWorkshopId = workshopId;
         _mapCooldown.OnMapStart(@event.MapName ?? "", workshopId);
         _cycleManager.OnMapStart(@event.MapName ?? "", workshopId);
