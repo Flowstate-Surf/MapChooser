@@ -249,14 +249,9 @@ public sealed class MapChanger : BasePlugin
     private HookResult OnWarmupEnd(EventWarmupEnd @event)
     {
         _state.WarmupRunning = false;
-        try
-        {
-            _state.MapStartTime = Core.Engine is { } e ? e.GlobalVars.CurrentTime : 0;
-        }
-        catch
-        {
-            _state.MapStartTime = 0;
-        }
+        var gameRules = Core.EntitySystem.GetGameRules();
+        if (gameRules?.IsValid == true && Core.Engine != null)
+            _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
         return HookResult.Continue;
     }
 
@@ -264,14 +259,9 @@ public sealed class MapChanger : BasePlugin
     {
         _eofManager?.ResetVote();
         _state.RoundsPlayed = 0;
-        try
-        {
-            _state.MapStartTime = Core.Engine is { } e ? e.GlobalVars.CurrentTime : 0;
-        }
-        catch
-        {
-            _state.MapStartTime = 0;
-        }
+        var gameRules = Core.EntitySystem.GetGameRules();
+        if (gameRules?.IsValid == true && Core.Engine != null)
+            _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
         _state.WarmupRunning = false;
         _state.NextEofVotePossibleRound = 0;
         _state.NextEofVotePossibleTime = 0;
