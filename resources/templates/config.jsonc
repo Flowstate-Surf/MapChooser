@@ -81,13 +81,6 @@
         "MapGroup": "mg_surf",
         "SetNextMapPermission": "admin.changemap",
         "MapsVotePermission": "admin.mapsvote",
-        "EmptyMapSwitcher": {
-            // Reload the current map on a timer when the server is empty.
-            // Fixes CS2 movement desync on long-running 24/7 servers (sv_hibernate_when_empty 0).
-            // Set Enabled to true to activate.
-            "Enabled": false,
-            // How often in seconds to check and reload when the server is empty. Default: 900 (15 min).
-            "IntervalSeconds": 900
-        }
+        "ChangeMapPermission": "admin.changemap"
     }
 }

@@ -86,15 +86,6 @@ public class CommandsConfig
     public string CycleMenu { get; set; } = "cyclemenu,mapcycle";
 }
 
-public class EmptyMapSwitcherConfig
-{
-    // Reload the current map on a timer when the server is empty.
-    // Fixes CS2 movement desync on long-running servers (sv_hibernate_when_empty 0).
-    public bool Enabled { get; set; } = false;
-    // How often (seconds) to check and reload when empty. Default: 900 (15 min).
-    public int IntervalSeconds { get; set; } = 900;
-}
-
 public class MapChangerConfig
 {
     public RtvConfig Rtv { get; set; } = new();
@@ -103,7 +94,6 @@ public class MapChangerConfig
     public EndOfMapConfig EndOfMap { get; set; } = new();
     public ExtendMapConfig ExtendMap { get; set; } = new();
     public CycleConfig Cycle { get; set; } = new();
-    public EmptyMapSwitcherConfig EmptyMapSwitcher { get; set; } = new();
     public int MapsInCooldown { get; set; } = 3;
     public CommandsConfig Commands { get; set; } = new();
     public bool AllowSpectatorsToVote { get; set; } = false;
