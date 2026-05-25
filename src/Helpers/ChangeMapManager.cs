@@ -55,17 +55,14 @@ public class ChangeMapManager
         _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.changing_map", map.Name, delay]);
 
         if (wasRtv && !_state.MatchEnded)
-        {
             _state.MatchEnded = true;
-            if (_core.Engine != null)
-            {
-                _core.Engine.ExecuteCommand("mp_endmatch_votenextlevel 0");
-                _core.Engine.ExecuteCommand("mp_forcewin 2");
-            }
-        }
 
         _core.Scheduler.DelayBySeconds(delay, () => {
             if (_core.Engine == null) return;
+            // Final defence: prevent CS2 from issuing a competing changelevel
+            _core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+            _core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+            _core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
             if (!string.IsNullOrEmpty(map.Id) && (map.Id.StartsWith("ws:") || long.TryParse(map.Id, out _)))
             {
                 string workshopId = map.Id.StartsWith("ws:") ? map.Id.Substring(3) : map.Id;

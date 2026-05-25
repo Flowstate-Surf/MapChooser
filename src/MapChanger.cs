@@ -31,6 +31,7 @@ public sealed class MapChanger : BasePlugin
     private ExtendManager _extendManager = null!;
 
     private MapCycleManager _cycleManager = null!;
+    private EmptyMapSwitcher _emptyMapSwitcher = null!;
 
     private RtvCommand _rtvCmd = null!;
     private UnRtvCommand _unRtvCmd = null!;
@@ -86,6 +87,7 @@ public sealed class MapChanger : BasePlugin
 
         var mapsFilePath = Core.Configuration.GetConfigPath("maps.jsonc");
         _cycleManager = new MapCycleManager(Core, _state, _mapLister, _changeMapManager, _config, mapsFilePath);
+        _emptyMapSwitcher = new EmptyMapSwitcher(Core, _state);
 
         _state.ExtendsLeft = _config.EndOfMap.ExtendLimit;
         _state.NextEofVotePossibleRound = 0;
@@ -199,13 +201,27 @@ public sealed class MapChanger : BasePlugin
         Core.Scheduler.StopOnMapChange(_checkVoteTimer);
 
         // Disable CS2's native map-change flow — the plugin owns all map changes.
-        // This overrides any cfg (e.g. map_voting.cfg) that re-enables them after map start.
+        // Apply immediately, then periodically (fires at 5 s, repeats every 30 s) to
+        // beat exec_after_map_start cfgs (e.g. map_voting.cfg) regardless of their delay.
         if (Core.Engine != null)
         {
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
         }
+        var convarGuard = Core.Scheduler.DelayAndRepeat(5000, 30000, () =>
+        {
+            if (Core.Engine != null)
+            {
+                Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+                Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+                Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
+            }
+        });
+        Core.Scheduler.StopOnMapChange(convarGuard);
+
+        if (_config.EmptyMapSwitcher.Enabled)
+            _emptyMapSwitcher.Start(_config.EmptyMapSwitcher.IntervalSeconds);
     }
 
     private HookResult OnRoundStart(EventRoundStart @event)
@@ -290,6 +306,12 @@ public sealed class MapChanger : BasePlugin
             Core.Logger.LogDebug(ex, "GameRules not available in OnWinPanelMatch - proceeding without halftime check");
         }
 
+        // Ensure CS2 won't issue its own changelevel (map_voting.cfg may have re-enabled it)
+        if (Core.Engine != null)
+        {
+            Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+            Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+        }
         if (_state.MatchEnded) return HookResult.Continue;
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
@@ -303,6 +325,11 @@ public sealed class MapChanger : BasePlugin
 
     private HookResult OnCsIntermission(EventCsIntermission @event)
     {
+        if (Core.Engine != null)
+        {
+            Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+            Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+        }
         if (_state.MatchEnded || _state.WarmupRunning) return HookResult.Continue;
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
@@ -325,6 +352,11 @@ public sealed class MapChanger : BasePlugin
     private HookResult OnGamePhaseChanged(EventGamePhaseChanged @event)
     {
         if (@event.NewPhase != (short)GamePhase.GAMEPHASE_MATCH_ENDED) return HookResult.Continue;
+        if (Core.Engine != null)
+        {
+            Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+            Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+        }
         if (_state.MatchEnded) return HookResult.Continue;
 
         _state.MatchEnded = true;
