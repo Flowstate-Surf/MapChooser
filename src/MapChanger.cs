@@ -88,7 +88,7 @@ public sealed class MapChanger : BasePlugin
 
         var mapsFilePath = Core.Configuration.GetConfigPath("maps.jsonc");
         _cycleManager = new MapCycleManager(Core, _state, _mapLister, _changeMapManager, _config, mapsFilePath);
-        _emptyMapSwitcher = new EmptyMapSwitcher(Core, _state);
+        _emptyMapSwitcher = new EmptyMapSwitcher(Core, _state, _config);
 
         _state.ExtendsLeft = _config.EndOfMap.ExtendLimit;
         _state.NextEofVotePossibleRound = 0;
