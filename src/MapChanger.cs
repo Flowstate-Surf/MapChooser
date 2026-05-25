@@ -207,6 +207,8 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
+            if (!string.IsNullOrEmpty(_config.MapGroup))
+                Core.Engine.ExecuteCommand($"sv_mapgroup {_config.MapGroup}");
         }
         _convarGuard?.Cancel();
         _convarGuard = Core.Scheduler.DelayAndRepeatBySeconds(5f, 30f, () =>
@@ -223,6 +225,24 @@ public sealed class MapChanger : BasePlugin
 
     private HookResult OnRoundStart(EventRoundStart @event)
     {
+        // Re-assert convars every round — mapsettings.cfg (exec'd by Flowtimer on RoundStart)
+        // can re-enable mp_match_end_changelevel 1. Immediate reset handles the case where
+        // mapsettings runs before us; NextWorldUpdate handles the case where it runs after.
+        if (Core.Engine != null)
+        {
+            Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+            Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+            Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
+        }
+        Core.Scheduler.NextWorldUpdate(() =>
+        {
+            if (Core.Engine != null)
+            {
+                Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
+                Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
+                Core.Engine.ExecuteCommand("mp_endmatch_votenextleveltime 0");
+            }
+        });
         CheckAutomatedVote();
         return HookResult.Continue;
     }

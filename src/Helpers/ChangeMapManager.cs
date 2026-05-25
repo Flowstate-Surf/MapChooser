@@ -68,8 +68,6 @@ public class ChangeMapManager
             if (!string.IsNullOrEmpty(map.Id) && (map.Id.StartsWith("ws:") || long.TryParse(map.Id, out _)))
             {
                 string workshopId = map.Id.StartsWith("ws:") ? map.Id.Substring(3) : map.Id;
-                if (!string.IsNullOrEmpty(_config.MapGroup))
-                    _core.Engine.ExecuteCommand($"sv_mapgroup {_config.MapGroup}");
                 _core.Engine.ExecuteCommand($"host_workshop_map {workshopId}");
             }
             else
