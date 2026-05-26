@@ -155,11 +155,13 @@ public sealed class MapChanger : BasePlugin
         _state.EofVoteHappening = false;
         _state.NextMap = null;
         _state.RoundsPlayed = 0;
-        // GlobalVars dereferences a native pointer via Unsafe.AsRef; if the pointer is
-        // zero during early OnMapLoad it causes a native AV that try/catch cannot catch.
-        // Gate all GlobalVars access on gamerules existence, which confirms the engine
-        // is fully initialised.
-        var gameRules = Core.EntitySystem.GetGameRules();
+        // GetGameRules() calls ThrowIfEntitySystemInvalid() internally and throws
+        // InvalidOperationException when the entity system isn't ready yet (early OnMapLoad).
+        // Also, GlobalVars dereferences a native pointer via Unsafe.AsRef — if the pointer is
+        // zero it causes a native AV that try/catch cannot catch. Gate all access on gamerules
+        // existence, which confirms the engine is fully initialised.
+        CCSGameRules? gameRules = null;
+        try { gameRules = Core.EntitySystem.GetGameRules(); } catch (InvalidOperationException) { }
         bool engineReady = gameRules?.IsValid == true && Core.Engine != null;
 
         _state.MapStartTime = engineReady ? Core.Engine!.GlobalVars.CurrentTime : 0;
@@ -249,7 +251,8 @@ public sealed class MapChanger : BasePlugin
     private HookResult OnWarmupEnd(EventWarmupEnd @event)
     {
         _state.WarmupRunning = false;
-        var gameRules = Core.EntitySystem.GetGameRules();
+        CCSGameRules? gameRules = null;
+        try { gameRules = Core.EntitySystem.GetGameRules(); } catch (InvalidOperationException) { }
         if (gameRules?.IsValid == true && Core.Engine != null)
             _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
         return HookResult.Continue;
@@ -259,7 +262,8 @@ public sealed class MapChanger : BasePlugin
     {
         _eofManager?.ResetVote();
         _state.RoundsPlayed = 0;
-        var gameRules = Core.EntitySystem.GetGameRules();
+        CCSGameRules? gameRules = null;
+        try { gameRules = Core.EntitySystem.GetGameRules(); } catch (InvalidOperationException) { }
         if (gameRules?.IsValid == true && Core.Engine != null)
             _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
         _state.WarmupRunning = false;
