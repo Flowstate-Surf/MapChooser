@@ -24,7 +24,7 @@ public class AdminChangeMapCommand
 
     public void Execute(ICommandContext context)
     {
-        var player = context.Sender!;
+        var player = context.Sender;
         var map = context.Args.Length > 0 ? string.Join(" ", context.Args) : null;
         if (string.IsNullOrEmpty(map))
         {
@@ -35,13 +35,29 @@ public class AdminChangeMapCommand
             }
 
             var menu = new AdminChangeMapMenu(_core, _mapLister);
-            menu.Show(player, HandleChangeMap);
+            menu.Show(player!, HandleChangeMap);
             return;
         }
 
-        var localizer = _core.Translation.GetPlayerLocalizer(player);
-
+        // Find the map first (common logic for both console and player)
         var mapInfo = _mapLister.Maps.FirstOrDefault(m => m.Name.Contains(map, StringComparison.OrdinalIgnoreCase) || (m.Id != null && m.Id.Equals(map, StringComparison.OrdinalIgnoreCase)));
+
+        if (!context.IsSentByPlayer)
+        {
+            // Console usage: no localizer available
+            if (mapInfo == null)
+            {
+                context.Reply($"Map not found: {map}");
+                return;
+            }
+            _state.NextMap = mapInfo.Name;
+            _changeMapManager.ChangeMap();
+            context.Reply($"Changing map to {mapInfo.Name}...");
+            return;
+        }
+
+        var localizer = _core.Translation.GetPlayerLocalizer(player!);
+
         if (mapInfo == null)
         {
             context.Reply(localizer["map_chooser.change_map.not_found", map]);
