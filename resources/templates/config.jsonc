@@ -2,27 +2,28 @@
     "MapChanger": {
         "Rtv": {
             "Enabled": true,
-            "EnabledInWarmup": false,
+            "EnabledInWarmup": true,
             "NominationEnabled": true,
             "MinPlayers": 0,
             "MinRounds": 0,
             "ChangeMapImmediately": true,
             "ChangeMapDelay": 5,
-            "MapsToShow": 3,
-            "VoteDuration": 30,
+            "MapsToShow": 6,
+            "VoteDuration": 60,
             "VotePercentage": 60,
-            "VoteCooldownTime": 300
+            "VoteCooldownTime": 300,
+            "VoteStyle": "chat"
         },
         "Nomination": {
             // Filter menu to a single map type. Options: "surf", "bhop", or leave blank for all maps.
             // When set, only maps whose Id or Name starts with "<type>_" are shown.
-            "MapType": "",
+            "MapType": "surf",
             // Comma-separated list of tiers to include in the nomination menu.
             // Example: "1,2,3" shows only T1–T3 maps. Leave blank to show all tiers.
-            "IncludeTiers": ""
+            "IncludeTiers": "1,2"
         },
         "Votemap": {
-            "Enabled": true,
+            "Enabled": false,
             "VotePercentage": 60,
             "ChangeMapImmediately": true,
             "MinPlayers": 0
@@ -30,24 +31,25 @@
         "EndOfMap": {
             "Enabled": true,
             "MapsToShow": 6,
-            "VoteDuration": 30,
+            "VoteDuration": 60,
             "ChangeMapDelay": 5,
             "TriggerSecondsBeforeEnd": 120,
-            "TriggerRoundsBeforeEnd": 4,
+            "TriggerRoundsBeforeEnd": 0,
             "AllowExtend": true,
-            "ExtendTimeStep": 15,
+            "ExtendTimeStep": 10,
             "ExtendRoundStep": 0,
-            "ExtendLimit": 3
+            "ExtendLimit": 3,
+            "VoteStyle": "chat"
         },
         "ExtendMap": {
             "Enabled": true,
-            "EnabledInWarmup": false,
+            "EnabledInWarmup": true,
             "MinPlayers": 0,
             "MinRounds": 0,
             "VotePercentage": 60,
             // Permission flag required to use the extend / !ve command.
             // Leave empty to allow everyone. Example: "@css/vip".
-            "Permission": "",
+            "Permission": "fs/vip",
             // Seconds that must pass after a successful extend vote before
             // another extend vote can start. Set to 0 to disable.
             "CooldownDuration": 180
@@ -56,6 +58,7 @@
         "Commands": {
             "Rtv": "rtv",
             "UnRtv": "unrtv",
+            "Stuck": "stuck",
             "Nominate": "nominate,nom,yd",
             "Timeleft": "timeleft",
             "Nextmap": "nextmap",
@@ -70,13 +73,13 @@
             "CycleMenu": "cyclemenu,mapcycle"
         },
         "Cycle": {
-            "Enabled": true,
+            "Enabled": false,
             "RandomOrder": false,
             "AddMapPermission": "admin.changemap",
             "RemoveMapPermission": "admin.changemap",
             "CycleMenuPermission": "admin.changemap"
         },
-        "AllowSpectatorsToVote": false,
+        "AllowSpectatorsToVote": true,
         // Set sv_mapgroup before every host_workshop_map call (e.g. "mg_surf"). Leave blank to skip.
         "MapGroup": "mg_surf",
         "SetNextMapPermission": "admin.changemap",

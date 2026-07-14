@@ -20,6 +20,7 @@ public class PluginState
     public DateTime? ExtendVoteCooldownEndTime { get; set; }
     public bool MatchEnded { get; set; }
     public bool EofVoteCompleted { get; set; }
+    public bool ChangeMapFallbackInProgress { get; set; }
     public Dictionary<int, string> Nominations { get; set; } = new();
     public string CurrentMapId { get; set; } = "";
     public string CurrentWorkshopId { get; set; } = "";

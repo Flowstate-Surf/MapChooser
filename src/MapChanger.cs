@@ -34,6 +34,7 @@ public sealed class MapChanger : BasePlugin
 
     private RtvCommand _rtvCmd = null!;
     private UnRtvCommand _unRtvCmd = null!;
+    private StuckCommand _stuckCmd = null!;
     private NominateCommand _nominateCmd = null!;
     private TimeleftCommand _timeleftCmd = null!;
     private NextmapCommand _nextmapCmd = null!;
@@ -97,6 +98,7 @@ public sealed class MapChanger : BasePlugin
 
         _rtvCmd = new RtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
         _unRtvCmd = new UnRtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
+        _stuckCmd = new StuckCommand(Core, _state, _rtvVoteManager, _eofManager, _mapLister, _config);
         _nominateCmd = new NominateCommand(Core, _state, _mapLister, _mapCooldown, _config);
         _timeleftCmd = new TimeleftCommand(Core, _state, _config);
         _nextmapCmd = new NextmapCommand(Core, _state, _cycleManager, _config);
@@ -112,6 +114,7 @@ public sealed class MapChanger : BasePlugin
 
         RegisterCommands(_config.Commands.Rtv, _rtvCmd.Execute);
         RegisterCommands(_config.Commands.UnRtv, _unRtvCmd.Execute);
+        RegisterCommands(_config.Commands.Stuck, _stuckCmd.Execute, permission: _config.ExtendMap.Permission);
         RegisterCommands(_config.Commands.Nominate, _nominateCmd.Execute);
         RegisterCommands(_config.Commands.Timeleft, _timeleftCmd.Execute);
         RegisterCommands(_config.Commands.Nextmap, _nextmapCmd.Execute);
@@ -179,6 +182,7 @@ public sealed class MapChanger : BasePlugin
         _state.NextEofVotePossibleTime = 0;
         _state.MatchEnded = false;
         _state.EofVoteCompleted = false;
+        _state.ChangeMapFallbackInProgress = false;
 
         string workshopId = engineReady ? Core.Engine!.WorkshopId : "";
         _state.CurrentMapId = engineReady

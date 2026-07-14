@@ -42,12 +42,21 @@ public class ChangeMapManager
         if (string.IsNullOrEmpty(_state.NextMap)) return;
 
         var mapName = _state.NextMap;
+        string? previousMapName = _state.CurrentMapId;
         _state.NextMap = null;
         _state.MapChangeScheduled = false;
         _state.ChangeMapImmediately = true;
 
         var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Equals(mapName, StringComparison.OrdinalIgnoreCase));
-        if (map == null) return;
+        if (map == null)
+        {
+            var fallbackMap = _mapLister.Maps.Where(m => m.IsValidForPlayerCount(_core.PlayerManager.GetAllPlayers().Count(p => p.IsValid && !p.IsFakeClient)))
+                .OrderBy(_ => Guid.NewGuid())
+                .FirstOrDefault();
+            if (fallbackMap == null) return;
+            map = fallbackMap;
+            _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.change_map.fallback", map.Name]);
+        }
 
         bool wasRtv = _state.IsRtv;
         int delay = wasRtv ? _config.Rtv.ChangeMapDelay : _config.EndOfMap.ChangeMapDelay;
@@ -75,5 +84,46 @@ public class ChangeMapManager
                 _core.Engine.ExecuteCommand($"changelevel {map.Id}");
             }
         });
+
+        _core.Scheduler.DelayBySeconds(delay + 15, () =>
+        {
+            if (_state.ChangeMapFallbackInProgress) return;
+            if (string.IsNullOrEmpty(_state.CurrentMapId)) return;
+
+            bool currentMapMatchesAttempt = string.Equals(_state.CurrentMapId, map.Name, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrEmpty(map.Id) && string.Equals(_state.CurrentMapId, map.Id, StringComparison.OrdinalIgnoreCase));
+
+            if (currentMapMatchesAttempt && !string.IsNullOrEmpty(previousMapName) &&
+                (string.Equals(previousMapName, map.Name, StringComparison.OrdinalIgnoreCase) ||
+                 (!string.IsNullOrEmpty(map.Id) && string.Equals(previousMapName, map.Id, StringComparison.OrdinalIgnoreCase))))
+            {
+                TriggerFallbackMapChange(map.Name);
+            }
+        });
+    }
+
+    private void TriggerFallbackMapChange(string attemptedMapName)
+    {
+        if (_state.ChangeMapFallbackInProgress) return;
+        _state.ChangeMapFallbackInProgress = true;
+
+        var playerCount = _core.PlayerManager.GetAllPlayers().Count(p => p.IsValid && !p.IsFakeClient);
+        var fallbackMap = _mapLister.Maps
+            .Where(m => m.IsValidForPlayerCount(playerCount) && !m.Name.Equals(attemptedMapName, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(_ => Guid.NewGuid())
+            .FirstOrDefault();
+
+        if (fallbackMap == null)
+        {
+            _state.ChangeMapFallbackInProgress = false;
+            return;
+        }
+
+        _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.change_map.fallback", fallbackMap.Name]);
+        _state.NextMap = fallbackMap.Name;
+        _state.MapChangeScheduled = true;
+        _state.ChangeMapImmediately = true;
+        _state.IsRtv = false;
+        ChangeMap();
     }
 }

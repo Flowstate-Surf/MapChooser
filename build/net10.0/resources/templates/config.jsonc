@@ -1,0 +1,68 @@
+{
+    "MapChooser": {
+        "Rtv": {
+            "Enabled": true,
+            "EnabledInWarmup": false,
+            "NominationEnabled": true,
+            "MinPlayers": 0,
+            "MinRounds": 0,
+            "ChangeMapImmediately": true,
+            "MapsToShow": 3,
+            "VoteDuration": 30,
+            "VotePercentage": 60,
+            "VoteCooldownTime": 300
+        },
+        "Votemap": {
+            "Enabled": true,
+            "VotePercentage": 60,
+            "ChangeMapImmediately": true,
+            "MinPlayers": 0
+        },
+        "EndOfMap": {
+            "Enabled": true,
+            "MapsToShow": 6,
+            "VoteDuration": 30,
+            "ChangeMapDelay": 5,
+            "TriggerSecondsBeforeEnd": 120,
+            "TriggerRoundsBeforeEnd": 4,
+            "AllowExtend": true,
+            "ExtendTimeStep": 15,
+            "ExtendRoundStep": 5,
+            "ExtendLimit": 3
+        },
+        "ExtendMap": {
+            "Enabled": true,
+            "EnabledInWarmup": false,
+            "MinPlayers": 0,
+            "MinRounds": 0,
+            "VotePercentage": 60
+        },
+        "MapsInCooldown": 3,
+        "Commands": {
+            "Rtv": "rtv",
+            "UnRtv": "unrtv",
+            "Nominate": "nominate,nom,yd",
+            "Timeleft": "timeleft",
+            "Nextmap": "nextmap",
+            "Votemap": "votemap",
+            "Revote": "revote",
+            "SetNextMap": "setnextmap",
+            "Extend": "ext,extendmap",
+            "MapsVote": "mapsvote",
+            "MapList": "maplist,maps",
+            "AddMap": "addmap",
+            "RemoveMap": "removemap",
+            "CycleMenu": "cyclemenu,mapcycle"
+        },
+        "Cycle": {
+            "Enabled": true,
+            "RandomOrder": false,
+            "AddMapPermission": "admin.changemap",
+            "RemoveMapPermission": "admin.changemap",
+            "CycleMenuPermission": "admin.changemap"
+        },
+        "AllowSpectatorsToVote": false,
+        "SetNextMapPermission": "admin.changemap",
+        "MapsVotePermission": "admin.mapsvote"
+    }
+}

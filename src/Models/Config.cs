@@ -13,6 +13,7 @@ public class RtvConfig
     public int VoteDuration { get; set; } = 30;
     public int VotePercentage { get; set; } = 60;
     public int VoteCooldownTime { get; set; } = 300;
+    public string VoteStyle { get; set; } = "menu";
 }
 
 public class NominationConfig
@@ -41,6 +42,7 @@ public class EndOfMapConfig
     public int ExtendTimeStep { get; set; } = 15;
     public int ExtendRoundStep { get; set; } = 0;
     public int ExtendLimit { get; set; } = 3;
+    public string VoteStyle { get; set; } = "menu";
 }
 
 public class ExtendMapConfig
@@ -71,6 +73,7 @@ public class CommandsConfig
 {
     public string Rtv { get; set; } = "rtv";
     public string UnRtv { get; set; } = "unrtv";
+    public string Stuck { get; set; } = "stuck";
     public string Nominate { get; set; } = "nominate,nom,yd";
     public string Timeleft { get; set; } = "timeleft";
     public string Nextmap { get; set; } = "nextmap";

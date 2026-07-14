@@ -1,0 +1,52 @@
+{
+    "MapChooserMaps": {
+        "Maps": [
+            // Standard maps — cycle order: 1 → 2 → 3 → ... → back to 1
+            {
+                "Name": "Dust II",
+                "Id": "de_dust2"
+            },
+            {
+                "Name": "Mirage",
+                "Id": "de_mirage"
+            },
+            {
+                "Name": "Inferno",
+                "Id": "de_inferno"
+            },
+            {
+                "Name": "Nuke",
+                "Id": "de_nuke"
+            },
+            {
+                "Name": "Ancient",
+                "Id": "de_ancient"
+            },
+            {
+                "Name": "Anubis",
+                "Id": "de_anubis"
+            },
+            {
+                "Name": "Vertigo",
+                "Id": "de_vertigo"
+            },
+            // Workshop map — Id is the workshop ID (numeric string)
+            {
+                "Name": "Inferno Night",
+                "Id": "3124567099"
+            },
+            // Player-count restricted maps — only shown/cycled with enough players
+            {
+                "Name": "Office",
+                "Id": "cs_office",
+                "MinPlayers": 4
+            },
+            {
+                "Name": "Overpass",
+                "Id": "de_overpass",
+                "MinPlayers": 2,
+                "MaxPlayers": 20
+            }
+        ]
+    }
+}
