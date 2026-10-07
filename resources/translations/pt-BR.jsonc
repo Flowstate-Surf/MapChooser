@@ -11,6 +11,7 @@
   "map_chooser.rtv.change_scheduled": "Uma alteração de mapa já está programada, aguarde...",
   "map_chooser.vote.started": "Votação começou! Vote no próximo mapa.",
   "map_chooser.vote.title": "Vote no próximo mapa:",
+  "map_chooser.vote.exit": "Sair",
   "map_chooser.vote.you_voted": "Você votou em [green]{0}[default].",
   "map_chooser.vote.player_voted": "[green]{0}[default] votou em [green]{1}[default] [darkred]({2})",
   "map_chooser.vote.ended": "Votação encerrada. O próximo mapa será [green]{0}[default] [darkred]({1} votos).",

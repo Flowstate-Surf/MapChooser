@@ -1,5 +1,7 @@
 using System.Threading;
+using MapChanger.Api;
 using MapChanger.Commands;
+using MapChanger.Contracts;
 using MapChanger.Dependencies;
 using MapChanger.Helpers;
 using MapChanger.Menu;
@@ -13,10 +15,11 @@ using SwiftlyS2.Shared.GameEventDefinitions;
 using SwiftlyS2.Shared.Misc;
 using SwiftlyS2.Shared.Plugins;
 using SwiftlyS2.Shared.SchemaDefinitions;
+using HudKit.Shared;
 
 namespace MapChanger;
 
-[PluginMetadata(Id = "MapChanger", Version = "1.2.3", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
+[PluginMetadata(Id = "MapChanger", Version = "1.3.4", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
 public sealed class MapChanger : BasePlugin
 {
     private MapChangerConfig _config = new();
@@ -29,6 +32,15 @@ public sealed class MapChanger : BasePlugin
     private VoteManager _extVoteManager = null!;
     private EndOfMapVoteManager _eofManager = null!;
     private ExtendManager _extendManager = null!;
+    private MapChooserHudMenuService _hudMenu = null!;
+    private IHudKit? _hudKit;
+    private IInterfaceManager? _battleInterfaces;
+    private OptionalBattleInterface? BattleRotation => GetBattleInterface("Flowtimer.AutoBattleMapRotation.v1", "FlowtimerS2.Contract.IAutoBattleMapRotation");
+    private OptionalBattleInterface? BattleGate => GetBattleInterface("Flowtimer.AutoBattleMapGate.v1", "FlowtimerS2.Contract.IAutoBattleMapGate");
+    private OptionalBattleInterface? GetBattleInterface(string identity, string typeName)
+        => _battleInterfaces?.HasSharedInterface(identity) == true
+            ? new OptionalBattleInterface(_battleInterfaces.GetSharedInterface<object>(identity), typeName) : null;
+    private readonly MapChangerApi _api;
 
     private MapCycleManager _cycleManager = null!;
 
@@ -50,17 +62,45 @@ public sealed class MapChanger : BasePlugin
 
     private CancellationTokenSource? _checkVoteTimer;
     private CancellationTokenSource? _convarGuard;
+    private bool _runtimeInitialized;
 
     public MapChanger(ISwiftlyCore core) : base(core)
     {
+        _api = new MapChangerApi(core);
+        _api.VoteStarted += () => BattleRotation?.SetMapVoteActive(true);
+        _api.VoteEnded += (_, _) => BattleRotation?.SetMapVoteActive(false);
     }
 
     public override void ConfigureSharedInterface(IInterfaceManager interfaceManager)
     {
+        // Public cross-plugin API. Contract assembly: contracts/MapChanger.Contracts
+        // (references HudKit.Core's public API — HudKit.Shared), shipped in resources/exports/.
+        interfaceManager.AddSharedInterface<IMapChangerApi, MapChangerApi>(IMapChangerApi.Identity, _api);
+    }
+
+    public override void UseSharedInterface(IInterfaceManager interfaceManager)
+    {
+        _battleInterfaces = interfaceManager;
+        if (interfaceManager.HasSharedInterface(IHudKit.Identity))
+        {
+            var current = interfaceManager.GetSharedInterface<IHudKit>(IHudKit.Identity);
+            if (_runtimeInitialized && !ReferenceEquals(current, _hudKit)) _hudMenu.SetHudKit(current);
+            _hudKit = current;
+        }
+    }
+
+    public override void OnSharedInterfaceInjected(IInterfaceManager interfaceManager)
+    {
+        UseSharedInterface(interfaceManager);
+        if (!_runtimeInitialized && _hudKit is not null)
+            Load(hotReload: false);
     }
 
     public override void Load(bool hotReload)
     {
+        if (_runtimeInitialized)
+            return;
+
         Core.Configuration
             .InitializeJsonWithModel<MapChangerConfig>("config.jsonc", "MapChanger")
             .Configure(builder =>
@@ -79,12 +119,23 @@ public sealed class MapChanger : BasePlugin
         _mapsConfig = Core.Configuration.Manager.GetSection("MapChangerMaps").Get<MapsConfig>() ?? new MapsConfig();
         _mapLister.UpdateMaps(_mapsConfig.Maps);
 
+        // Swiftly can call Load before shared interfaces have finished injecting. Defer
+        // runtime registration until OnSharedInterfaceInjected instead of failing the plugin.
+        if (_hudKit is null)
+            return;
+
+        _hudMenu = new MapChooserHudMenuService(Core, _hudKit);
+        _hudMenu.BattleVoteEnabled = () => BattleGate != null;
+
         _mapCooldown = new MapCooldown(Core, _config);
-        _changeMapManager = new ChangeMapManager(Core, _state, _mapLister, _config);
+        _changeMapManager = new ChangeMapManager(Core, _state, _mapLister, _config, _api);
+        _changeMapManager.RtvBattleDecision = () => BattleGate?.DeferRtvChange();
+        _changeMapManager.CancelBattleWait = () => BattleGate?.CancelRtvChange();
         _rtvVoteManager = new VoteManager();
         _extVoteManager = new VoteManager();
         _extendManager = new ExtendManager(Core, _state, _config, _extVoteManager);
-        _eofManager = new EndOfMapVoteManager(Core, _state, _rtvVoteManager, _mapLister, _mapCooldown, _changeMapManager, _extendManager, _config);
+        _eofManager = new EndOfMapVoteManager(Core, _state, _rtvVoteManager, _mapLister, _mapCooldown, _changeMapManager, _extendManager, _config, _hudMenu, _api);
+        _api.Attach(_state, _config, _mapLister, _mapCooldown, _changeMapManager, _eofManager, _extendManager, _hudMenu, _hudKit);
 
         var mapsFilePath = Core.Configuration.GetConfigPath("maps.jsonc");
         _cycleManager = new MapCycleManager(Core, _state, _mapLister, _changeMapManager, _config, mapsFilePath);
@@ -99,18 +150,29 @@ public sealed class MapChanger : BasePlugin
         _rtvCmd = new RtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
         _unRtvCmd = new UnRtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
         _stuckCmd = new StuckCommand(Core, _state, _rtvVoteManager, _eofManager, _mapLister, _config);
-        _nominateCmd = new NominateCommand(Core, _state, _mapLister, _mapCooldown, _config);
+        _nominateCmd = new NominateCommand(Core, _state, _mapLister, _mapCooldown, _config, _hudMenu);
         _timeleftCmd = new TimeleftCommand(Core, _state, _config);
         _nextmapCmd = new NextmapCommand(Core, _state, _cycleManager, _config);
-        _votemapCmd = new VotemapCommand(Core, _state, _mapLister, _mapCooldown, _changeMapManager, _config);
+        _votemapCmd = new VotemapCommand(Core, _state, _mapLister, _mapCooldown, _changeMapManager, _config, _hudMenu);
         _revoteCmd = new RevoteCommand(Core, _state, _eofManager, _config);
-        _setNextMapCmd = new SetNextMapCommand(Core, _state, _mapLister, _changeMapManager);
+        _setNextMapCmd = new SetNextMapCommand(Core, _state, _mapLister, _changeMapManager, _hudMenu);
         _extendCmd = new ExtendCommand(Core, _state, _extVoteManager, _extendManager, _config);
-        _adminMapsVoteCmd = new AdminMapsVoteCommand(Core, _state, _mapLister, _eofManager, _config);
-        _adminChangeMapCmd = new AdminChangeMapCommand(Core, _state, _mapLister, _changeMapManager);
+        _adminMapsVoteCmd = new AdminMapsVoteCommand(Core, _state, _mapLister, _eofManager, _config, _hudMenu);
+        _adminChangeMapCmd = new AdminChangeMapCommand(Core, _state, _mapLister, _changeMapManager, _hudMenu);
         _mapListCmd = new MapListCommand(Core, _mapLister, _mapCooldown);
         _addMapCmd = new AddMapCommand(Core, _cycleManager);
         _removeMapCmd = new RemoveMapCommand(Core, _cycleManager);
+
+        // Swiftly exposes registered numeric commands as !1 / /1 etc. in chat.
+        // No movement hooks, mouse capture, or client key bindings are used for votes.
+        for (int number = 0; number <= MapChooserMenuTemplate.MaxOptions; number++)
+        {
+            int choice = number;
+            Core.Command.RegisterCommand(choice.ToString(), context =>
+            {
+                if (context.Sender is { IsValid: true } player) _hudMenu.SelectNumber(player, choice);
+            });
+        }
 
         RegisterCommands(_config.Commands.Rtv, _rtvCmd.Execute);
         RegisterCommands(_config.Commands.UnRtv, _unRtvCmd.Execute);
@@ -140,13 +202,49 @@ public sealed class MapChanger : BasePlugin
         Core.GameEvent.HookPost<EventRoundAnnounceMatchStart>(OnMatchStart);
         Core.GameEvent.HookPost<EventRoundAnnounceMatchPoint>(OnMatchPoint);
         Core.Event.OnMapLoad += OnMapLoad;
+        Core.Event.OnMapUnload += OnMapUnload;
         Core.Event.OnClientDisconnected += OnClientDisconnected;
 
         _checkVoteTimer = Core.Scheduler.DelayAndRepeatBySeconds(1f, 1f, () =>
         {
+            CheckStuckMapChange();
             CheckAutomatedVote();
         });
         Core.Scheduler.StopOnMapChange(_checkVoteTimer);
+        _runtimeInitialized = true;
+    }
+
+    /// <summary>
+    /// Safety net for a fully empty/hibernating server: if a map change was decided
+    /// but nothing (no round end, no match-start/end event) has applied it after a
+    /// grace period, force it through directly. Round end normally handles this, but
+    /// on an empty server rounds may never complete at all, so this can't rely on
+    /// any game event firing.
+    /// </summary>
+    private void CheckStuckMapChange()
+    {
+        if (!_state.MapChangeScheduled || _state.EofVoteHappening || _state.ChangeMapImmediately) return;
+        if (_state.MapChangeScheduledAt is null) return;
+        // A completed advance vote is a next-map decision, not a stuck change.
+        // Never let the watchdog cut short an active round on a populated server.
+        if (!_state.MatchEnded)
+        {
+            if (Core.PlayerManager.GetAllPlayers().Any(p => p.IsValid && !p.IsFakeClient)) return;
+            float limit = Core.ConVar.Find<float>("mp_timelimit")?.Value ?? 0;
+            if (limit <= 0 || Core.TryGetCurrentTime() - _state.MapStartTime < limit * 60) return;
+        }
+
+
+        if ((DateTime.Now - _state.MapChangeScheduledAt.Value).TotalSeconds >= _config.EndOfMap.ChangeMapDelay + 10)
+        {
+            _changeMapManager.ChangeMap();
+        }
+    }
+
+    private void OnMapUnload(IOnMapUnloadEvent _)
+    {
+        _changeMapManager.CancelPending();
+        _hudMenu.ForgetAll();
     }
 
     private void OnMapLoad(IOnMapLoadEvent @event)
@@ -155,6 +253,7 @@ public sealed class MapChanger : BasePlugin
 
         _eofManager?.ResetVote();
         _state.MapChangeScheduled = false;
+        _state.MapChangeScheduledAt = null;
         _state.EofVoteHappening = false;
         _state.NextMap = null;
         _state.RoundsPlayed = 0;
@@ -173,6 +272,9 @@ public sealed class MapChanger : BasePlugin
         _state.ExtendVoteCooldownEndTime = null;
         _state.IsRtv = false;
         _state.ChangeMapImmediately = false;
+        // Clear the changelevel debounce from the previous map (upstream v1.3.0 missed this —
+        // without it a successful switch would leave ChangeMap() debounced forever).
+        _state.MapSwitchInFlight = false;
 
         _rtvVoteManager?.Clear();
         _extVoteManager?.Clear();
@@ -194,6 +296,7 @@ public sealed class MapChanger : BasePlugin
 
         _checkVoteTimer = Core.Scheduler.DelayAndRepeatBySeconds(1f, 1f, () =>
         {
+            CheckStuckMapChange();
             CheckAutomatedVote();
         });
         Core.Scheduler.StopOnMapChange(_checkVoteTimer);
@@ -264,6 +367,16 @@ public sealed class MapChanger : BasePlugin
 
     private HookResult OnMatchStart(EventRoundAnnounceMatchStart @event)
     {
+        // If a map change was already decided (e.g. an EOF/extend vote finished while the
+        // server was empty and never got a chance to apply), don't silently wipe it here —
+        // that would strand the server on the current map with the decision lost and no
+        // revote pending. Apply it now instead.
+        if (_state.MapChangeScheduled && !_state.EofVoteHappening && !_state.ChangeMapImmediately)
+        {
+            _changeMapManager.ChangeMap();
+            return HookResult.Continue;
+        }
+
         _eofManager?.ResetVote();
         _state.RoundsPlayed = 0;
         CCSGameRules? gameRules = null;
@@ -274,6 +387,7 @@ public sealed class MapChanger : BasePlugin
         _state.NextEofVotePossibleRound = 0;
         _state.NextEofVotePossibleTime = 0;
         _state.MapChangeScheduled = false;
+        _state.MapChangeScheduledAt = null;
         _state.EofVoteHappening = false;
         _state.EofVoteCompleted = false;
         _state.IsRtv = false;
@@ -320,7 +434,7 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
         }
-        if (_state.MatchEnded || _state.ChangeMapImmediately) return HookResult.Continue;
+        if (BattleGate != null || _state.MatchEnded || _state.ChangeMapImmediately) return HookResult.Continue;
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
             _eofManager.ForceEnd();
@@ -338,7 +452,7 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
         }
-        if (_state.MatchEnded || _state.ChangeMapImmediately || _state.WarmupRunning) return HookResult.Continue;
+        if (BattleGate != null || _state.MatchEnded || _state.ChangeMapImmediately || _state.WarmupRunning) return HookResult.Continue;
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
             _eofManager.ForceEnd();
@@ -367,7 +481,7 @@ public sealed class MapChanger : BasePlugin
             Core.Engine.ExecuteCommand("mp_match_end_changelevel 0");
             Core.Engine.ExecuteCommand("mp_endmatch_votenextmap 0");
         }
-        if (_state.MatchEnded || _state.ChangeMapImmediately) return HookResult.Continue;
+        if (BattleGate != null || _state.MatchEnded || _state.ChangeMapImmediately) return HookResult.Continue;
 
         _state.MatchEnded = true;
         if (_state.EofVoteHappening)
@@ -382,7 +496,22 @@ public sealed class MapChanger : BasePlugin
     private HookResult OnRoundEnd(EventRoundEnd @event)
     {
         _state.RoundsPlayed++;
-        if (_state.MapChangeScheduled && !_state.EofVoteHappening && !_state.ChangeMapImmediately && _state.IsRtv)
+
+        if (_config.DetailedLogging)
+            Core.Logger.LogInformation(
+                "MapChanger: OnRoundEnd scheduled={Scheduled} eofVote={Eof} immediate={Immediate} isRtv={IsRtv} inFlight={InFlight} nextMap={NextMap}",
+                _state.MapChangeScheduled, _state.EofVoteHappening,
+                _state.ChangeMapImmediately, _state.IsRtv, _state.MapSwitchInFlight, _state.NextMap ?? "<null>");
+
+        // Apply ANY pending map change here, not just RTV ones. Non-RTV changes
+        // (automated EOF vote, !votemap, !setnextmap, post-extend vote) used to only
+        // apply via the native match-end events (WinPanelMatch/CsIntermission/
+        // GamePhaseChanged). Those events depend on the match actually progressing —
+        // if the server was empty (hibernating) when the vote finished, they may never
+        // fire, leaving the map "stuck" even after players reconnect. Round end is a
+        // reliable, always-fired hook, so use it as the general trigger.
+        if (_state.MapChangeScheduled && !_state.EofVoteHappening && !_state.ChangeMapImmediately
+            && (_state.IsRtv || _state.MatchEnded || MapTimeExpired()))
         {
             _changeMapManager.ChangeMap();
         }
@@ -394,9 +523,38 @@ public sealed class MapChanger : BasePlugin
         return HookResult.Continue;
     }
 
+    private bool MapTimeExpired()
+    {
+        float limit = Core.ConVar.Find<float>("mp_timelimit")?.Value ?? 0;
+        return limit > 0 && Core.TryGetCurrentTime() - _state.MapStartTime >= limit * 60;
+    }
+
     private void CheckAutomatedVote(bool force = false)
     {
+        try
+        {
+            CheckAutomatedVoteCore(force);
+        }
+        catch (Exception ex)
+        {
+            Core.Logger.LogError(ex, "MapChanger: CheckAutomatedVote threw");
+        }
+    }
+
+    private DateTime _battleVoteRetry;
+    private void CheckAutomatedVoteCore(bool force)
+    {
+        if (BattleGate != null) {
+            if (_state.EofVoteHappening || _state.MapChangeScheduled || _state.MapSwitchInFlight || DateTime.Now < _battleVoteRetry) return;
+            if (BattleRotation?.ReadyForMapVote == true) {
+                _battleVoteRetry = DateTime.Now.AddSeconds(30);
+                _eofManager.StartVote(_config.EndOfMap.VoteDuration, 6, changeImmediately:true);
+            }
+            return;
+        }
+
         if (!_config.EndOfMap.Enabled || _state.EofVoteHappening || _state.MapChangeScheduled || _state.ChangeMapImmediately || _state.WarmupRunning) return;
+        if (_state.MapSwitchInFlight) return;
 
         int totalRoundsPlayed;
         try
@@ -454,49 +612,21 @@ public sealed class MapChanger : BasePlugin
 
         if (!trigger && winlimit > 0)
         {
-            try
+            int maxTeamScore = TryGetMaxTeamScore();
+            if (winlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
             {
-                var teams = Core.EntitySystem.GetAllEntitiesByClass<CCSTeam>();
-                int maxTeamScore = 0;
-                foreach (var team in teams)
-                {
-                    int score = team.ScoreFirstHalf + team.ScoreSecondHalf + team.ScoreOvertime;
-                    if (score > maxTeamScore) maxTeamScore = score;
-                }
-
-                if (winlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
-                {
-                    trigger = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                Core.Logger.LogDebug(ex, "MapChanger: EntitySystem access failed in winlimit check");
+                trigger = true;
             }
         }
 
         // When mp_winlimit is not set, CS2 still ends the match when a team wins (maxrounds/2)+1 rounds
         if (!trigger && winlimit == 0 && maxrounds > 0)
         {
-            try
+            int effectiveWinlimit = maxrounds / 2 + 1;
+            int maxTeamScore = TryGetMaxTeamScore();
+            if (effectiveWinlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
             {
-                int effectiveWinlimit = maxrounds / 2 + 1;
-                var teams = Core.EntitySystem.GetAllEntitiesByClass<CCSTeam>();
-                int maxTeamScore = 0;
-                foreach (var team in teams)
-                {
-                    int score = team.ScoreFirstHalf + team.ScoreSecondHalf + team.ScoreOvertime;
-                    if (score > maxTeamScore) maxTeamScore = score;
-                }
-
-                if (effectiveWinlimit - maxTeamScore <= _config.EndOfMap.TriggerRoundsBeforeEnd)
-                {
-                    trigger = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                Core.Logger.LogDebug(ex, "MapChanger: EntitySystem access failed in effective-winlimit check");
+                trigger = true;
             }
         }
 
@@ -510,6 +640,31 @@ public sealed class MapChanger : BasePlugin
         }
     }
 
+    /// <summary>
+    /// Safely read the highest team score. The entity system can throw if it
+    /// isn't fully initialised yet (e.g. during early map load), so swallow
+    /// and return 0 in that case. (Ported from upstream MapChooser v1.3.0.)
+    /// </summary>
+    private int TryGetMaxTeamScore()
+    {
+        try
+        {
+            var teams = Core.EntitySystem.GetAllEntitiesByClass<CCSTeam>();
+            int maxTeamScore = 0;
+            foreach (var team in teams)
+            {
+                int score = team.ScoreFirstHalf + team.ScoreSecondHalf + team.ScoreOvertime;
+                if (score > maxTeamScore) maxTeamScore = score;
+            }
+            return maxTeamScore;
+        }
+        catch (Exception ex)
+        {
+            Core.Logger.LogDebug(ex, "MapChanger: failed to read team scores");
+            return 0;
+        }
+    }
+
     private void ExecuteCycleMenu(ICommandContext context)
     {
         if (!context.IsSentByPlayer)
@@ -517,7 +672,7 @@ public sealed class MapChanger : BasePlugin
             context.Reply("This command can only be used by players.");
             return;
         }
-        var menu = new CycleMenu(Core, _mapLister, _cycleManager, _config);
+        var menu = new CycleMenu(Core, _mapLister, _cycleManager, _config, _hudMenu);
         menu.Show(context.Sender!);
     }
 
@@ -538,5 +693,35 @@ public sealed class MapChanger : BasePlugin
 
     public override void Unload()
     {
+        try
+        {
+            _checkVoteTimer?.Cancel();
+            _checkVoteTimer = null;
+
+            _convarGuard?.Cancel();
+            _convarGuard = null;
+
+            _changeMapManager?.CancelPending();
+            _hudMenu?.CloseAll();
+
+            Core.Event.OnMapLoad -= OnMapLoad;
+            Core.Event.OnMapUnload -= OnMapUnload;
+            Core.Event.OnClientDisconnected -= OnClientDisconnected;
+
+            Core.GameEvent.UnhookPost<EventRoundEnd>();
+            Core.GameEvent.UnhookPost<EventRoundStart>();
+            Core.GameEvent.UnhookPost<EventRoundAnnounceWarmup>();
+            Core.GameEvent.UnhookPost<EventWarmupEnd>();
+            Core.GameEvent.UnhookPost<EventCsWinPanelMatch>();
+            Core.GameEvent.UnhookPost<EventCsIntermission>();
+            Core.GameEvent.UnhookPost<EventMapShutdown>();
+            Core.GameEvent.UnhookPost<EventGamePhaseChanged>();
+            Core.GameEvent.UnhookPost<EventRoundAnnounceMatchStart>();
+            Core.GameEvent.UnhookPost<EventRoundAnnounceMatchPoint>();
+        }
+        catch (Exception ex)
+        {
+            Core.Logger.LogError(ex, "MapChanger: Unload cleanup failed");
+        }
     }
 }

@@ -1,7 +1,6 @@
 using MapChanger.Models;
 using MapChanger.Dependencies;
 using MapChanger.Helpers;
-using SwiftlyS2.Core.Menus.OptionsBase;
 using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.Commands;
 using SwiftlyS2.Shared.Players;
@@ -18,9 +17,10 @@ public class VotemapCommand
     private readonly MapCooldown _mapCooldown;
     private readonly ChangeMapManager _changeMapManager;
     private readonly MapChangerConfig _config;
+    private readonly MapChooserHudMenuService _hudMenu;
     private readonly Dictionary<string, VoteManager> _mapVotes = new();
 
-    public VotemapCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, MapCooldown mapCooldown, ChangeMapManager changeMapManager, MapChangerConfig config)
+    public VotemapCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, MapCooldown mapCooldown, ChangeMapManager changeMapManager, MapChangerConfig config, MapChooserHudMenuService hudMenu)
     {
         _core = core;
         _state = state;
@@ -28,6 +28,7 @@ public class VotemapCommand
         _mapCooldown = mapCooldown;
         _changeMapManager = changeMapManager;
         _config = config;
+        _hudMenu = hudMenu;
     }
 
     public void Execute(ICommandContext context)
@@ -69,7 +70,7 @@ public class VotemapCommand
 
     private void OpenVotemapMenu(IPlayer player)
     {
-        var menu = new VotemapMenu(_core, _mapLister, _mapCooldown, _config.Nomination);
+        var menu = new VotemapMenu(_core, _mapLister, _mapCooldown, _config.Nomination, _hudMenu);
         menu.Show(player, HandleVotemap);
     }
 

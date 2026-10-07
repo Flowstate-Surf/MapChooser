@@ -1,43 +1,36 @@
 using MapChanger.Models;
 using MapChanger.Dependencies;
 using MapChanger.Helpers;
-using SwiftlyS2.Core.Menus.OptionsBase;
 using SwiftlyS2.Shared;
-using SwiftlyS2.Shared.Menus;
 using SwiftlyS2.Shared.Players;
-using System.Threading.Tasks;
 
 namespace MapChanger.Menu;
 
+/// <summary>
+/// HudKit-based two-level nomination menu: a tier picker (T1..T6 that have eligible maps, plus
+/// "All Maps") that drills into a paged map list. Ported off the native SwiftlyS2 MenusAPI so the
+/// whole plugin shares one menu system.
+/// </summary>
 public class NominateMenu
 {
     private readonly ISwiftlyCore _core;
     private readonly MapLister _mapLister;
     private readonly MapCooldown _mapCooldown;
     private readonly NominationConfig _nominationConfig;
+    private readonly MapChooserHudMenuService _hudMenu;
 
-    public NominateMenu(ISwiftlyCore core, MapLister mapLister, MapCooldown mapCooldown, NominationConfig nominationConfig)
+    public NominateMenu(ISwiftlyCore core, MapLister mapLister, MapCooldown mapCooldown, NominationConfig nominationConfig, MapChooserHudMenuService hudMenu)
     {
         _core = core;
         _mapLister = mapLister;
         _mapCooldown = mapCooldown;
         _nominationConfig = nominationConfig;
+        _hudMenu = hudMenu;
     }
 
     public void Show(IPlayer player, Action<IPlayer, string> onNominate)
     {
-        string currentMapId;
-        string? currentWorkshopId;
-        try
-        {
-            currentMapId = _core.Engine?.GlobalVars.MapName.ToString() ?? "";
-            currentWorkshopId = _core.Engine?.WorkshopId;
-        }
-        catch
-        {
-            currentMapId = "";
-            currentWorkshopId = null;
-        }
+        _core.TryGetEngineSnapshot(out var currentMapId, out var currentWorkshopId, out _);
         var playerCount = _core.PlayerManager.GetAllPlayers()
             .Count(p => p.IsValid && !p.IsFakeClient);
 
@@ -55,79 +48,40 @@ public class NominateMenu
     private void ShowTierMenu(IPlayer player, List<Map> eligible, Action<IPlayer, string> onNominate)
     {
         var localizer = _core.Translation.GetPlayerLocalizer(player);
-        var builder = _core.MenusAPI.CreateBuilder();
-        builder.Design.SetMenuTitle(localizer["map_chooser.nominate.tier_title"] ?? "Nominate — Select Tier:");
+        var options = new List<MapChooserHudOption>();
 
         for (int tier = 1; tier <= 6; tier++)
         {
             var mapsInTier = eligible.Where(m => m.Tier == tier).ToList();
             if (mapsInTier.Count == 0) continue;
 
-            var tierOption = new ButtonMenuOption(
-                $"<font color='yellow'>T{tier}</font>  <font color='gray'>({mapsInTier.Count})</font>")
-            {
-                Tag = mapsInTier
-            };
-            tierOption.Click += (sender, args) =>
-            {
-                if (sender is not IMenuOption opt || opt.Tag is not List<Map> tierMaps)
-                    return ValueTask.CompletedTask;
-                _core.Scheduler.NextTick(() =>
-                {
-                    _core.MenusAPI.CloseActiveMenu(args.Player);
-                    ShowMapMenu(args.Player, tierMaps, onNominate);
-                });
-                return ValueTask.CompletedTask;
-            };
-            builder.AddOption(tierOption);
+            int t = tier;
+            options.Add(new MapChooserHudOption(
+                $"T{t}  ({mapsInTier.Count})",
+                Enabled: true,
+                p => ShowMapMenu(p, eligible.Where(m => m.Tier == t).ToList(), onNominate)));
         }
 
-        var allOption = new ButtonMenuOption(
-            localizer["map_chooser.nominate.all_maps"] ?? "All Maps")
-        {
-            Tag = eligible
-        };
-        allOption.Click += (sender, args) =>
-        {
-            if (sender is not IMenuOption opt || opt.Tag is not List<Map> allMaps)
-                return ValueTask.CompletedTask;
-            _core.Scheduler.NextTick(() =>
-            {
-                _core.MenusAPI.CloseActiveMenu(args.Player);
-                ShowMapMenu(args.Player, allMaps, onNominate);
-            });
-            return ValueTask.CompletedTask;
-        };
-        builder.AddOption(allOption);
+        options.Add(new MapChooserHudOption(
+            localizer["map_chooser.nominate.all_maps"] ?? "All Maps",
+            Enabled: true,
+            p => ShowMapMenu(p, eligible, onNominate)));
 
-        var menu = builder.Build();
-        _core.MenusAPI.OpenMenuForPlayer(player, menu);
+        _hudMenu.Show(player, localizer["map_chooser.nominate.tier_title"] ?? "Nominate — Select Tier:", options);
     }
 
     private void ShowMapMenu(IPlayer player, List<Map> maps, Action<IPlayer, string> onNominate)
     {
         var localizer = _core.Translation.GetPlayerLocalizer(player);
-        var builder = _core.MenusAPI.CreateBuilder();
-        builder.Design.SetMenuTitle(localizer["map_chooser.nominate.title"] ?? "Nominate a map:");
+        var options = maps
+            .Select(m => new MapChooserHudOption(m.Name, Enabled: true, p => onNominate(p, m.Name)))
+            .ToList();
 
-        foreach (var map in maps)
-        {
-            var option = new ButtonMenuOption($"<font color='lightgreen'>{map.Name}</font>");
-            option.Click += (sender, args) =>
-            {
-                _core.Scheduler.NextTick(() => {
-                    onNominate(args.Player, map.Name);
-                    var currentMenu = _core.MenusAPI.GetCurrentMenu(args.Player);
-                    if (currentMenu != null)
-                        _core.MenusAPI.CloseMenuForPlayer(args.Player, currentMenu);
-                });
-                return ValueTask.CompletedTask;
-            };
-            builder.AddOption(option);
-        }
-
-        var menu = builder.Build();
-        _core.MenusAPI.OpenMenuForPlayer(player, menu);
+        _hudMenu.Show(
+            player,
+            localizer["map_chooser.nominate.title"] ?? "Nominate a map:",
+            options,
+            onBack: p => Show(p, onNominate));
     }
 
     private static bool IsCurrentMap(Map map, string? currentMapId, string? currentWorkshopId)
@@ -140,5 +94,4 @@ public class NominateMenu
         }
         return false;
     }
-
 }

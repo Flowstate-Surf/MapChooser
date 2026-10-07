@@ -101,6 +101,10 @@ public class MapChangerConfig
     public CommandsConfig Commands { get; set; } = new();
     public bool AllowSpectatorsToVote { get; set; } = false;
     public bool AnnounceVotes { get; set; } = true;
+    /// <summary>When true, the end-of-map vote menu offers no Exit row so players must pick a map.</summary>
+    public bool DisableVoteMenuExit { get; set; } = false;
+    /// <summary>Verbose vote-flow / map-cycle logging (ported from upstream MapChooser v1.3.0).</summary>
+    public bool DetailedLogging { get; set; } = false;
     public string SetNextMapPermission { get; set; } = "admin.changemap";
     public string MapsVotePermission { get; set; } = "admin.mapsvote";
     public string ChangeMapPermission { get; set; } = "admin.changemap";

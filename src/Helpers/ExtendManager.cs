@@ -77,10 +77,17 @@ public class ExtendManager
         }
 
         _state.MapChangeScheduled = false;
+        _state.MapChangeScheduledAt = null;
         _state.EofVoteCompleted = false;
         try
         {
-            _state.NextEofVotePossibleRound = _core.Game.MatchData.TerroristScoreTotal + _core.Game.MatchData.CTScoreTotal + 1;
+            // Don't require an additional round beyond the current count — on
+            // non-round-based gamemodes (surf, bhop, deathmatch, etc.) the round
+            // total never advances, so a "+1" here would permanently block
+            // CheckAutomatedVote's round-gate and prevent any future timelimit-based
+            // revote after an extend. The 60s NextEofVotePossibleTime cooldown below
+            // is the intended throttle; this just guards against going backward.
+            _state.NextEofVotePossibleRound = _core.Game.MatchData.TerroristScoreTotal + _core.Game.MatchData.CTScoreTotal;
         }
         catch (InvalidOperationException ex)
         {

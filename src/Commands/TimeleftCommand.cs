@@ -46,8 +46,9 @@ public class TimeleftCommand
 
         if (timelimit > 0)
         {
-            if (_core.Engine == null) { player.SendChat(localizer["map_chooser.timeleft.prefix"] + " " + localizer["map_chooser.timeleft.no_time_limit"]); return; }
-            float timePlayed = _core.Engine.GlobalVars.CurrentTime - _state.MapStartTime;
+            float currentTime = _core.TryGetCurrentTime();
+            if (currentTime <= 0) { player.SendChat(localizer["map_chooser.timeleft.prefix"] + " " + localizer["map_chooser.timeleft.no_time_limit"]); return; }
+            float timePlayed = currentTime - _state.MapStartTime;
             float timeRemaining = (timelimit * 60) - timePlayed;
 
             if (timeRemaining > 1)

@@ -132,6 +132,44 @@ The bundled pool ships with **surf T1–T7** and **bhop T1–T10** maps (~886 en
 
 ---
 
+## Global Config Additions (upstream v1.3.0 parity)
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `DisableVoteMenuExit` | `false` | When `true`, the end-of-map vote menu has no **Exit** row — players must pick a map. |
+| `DetailedLogging` | `false` | Verbose vote-flow / map-change logging (`ScheduleMapChange`, `OnRoundEnd`, debounce decisions). |
+
+## Shared API (`MapChanger.Contracts`)
+
+Other plugins can consume MapChanger over SwiftlyS2's shared-interface system. The contract
+assembly is `MapChanger.Contracts` (shipped in `resources/exports/`) and references
+**HudKit.Shared** — the public API of the [`hudkit.core`](https://github.com/) plugin MapChanger
+renders its vote menus with — so consumers can reuse HudKit primitives (`IHudKit`, `IHudHandle`)
+directly from the same contract.
+
+```csharp
+public override void UseSharedInterface(IInterfaceManager interfaceManager)
+{
+    if (!interfaceManager.HasSharedInterface(IMapChangerApi.Identity)) // "MapChanger.Api.v1"
+        return;
+
+    var api = interfaceManager.GetSharedInterface<IMapChangerApi>(IMapChangerApi.Identity);
+    if (!api.IsReady) return; // MapChanger defers startup until HudKit is injected
+
+    api.NextMapDecided += map => Log($"Next map: {map}");
+    api.VoteEnded += (result, winner) => Log($"Vote ended: {result} {winner}");
+    api.ScheduleMapChange("surf_amir T2 | 1B | L");
+}
+```
+
+Surface: current/next map, `MapChangeScheduled`, `VoteInProgress`, `ExtendsLeft`,
+`TimeLeftSeconds` / `RoundsLeft`, `GetMaps()` (with cooldown state), `GetNominations()`,
+`ScheduleMapChange`, `StartVote`, `CancelVote`, `OpenVoteMenu`, `ExtendCurrentMap`,
+plus `NextMapDecided` / `VoteStarted` / `VoteEnded` / `MapChanging` events.
+All members are main-thread-only, like the rest of SwiftlyS2.
+
+---
+
 ## Requirements
 
 - .NET 10 SDK
@@ -143,7 +181,8 @@ The bundled pool ships with **surf T1–T7** and **bhop T1–T10** maps (~886 en
 dotnet build
 ```
 
-Output: `build/MapChanger.dll`
+Output: `build/MapChanger.dll` (plus `build/MapChanger.Contracts.dll` and
+`build/resources/exports/MapChanger.Contracts.dll` for shared-api consumers).
 
 ## Deploy
 

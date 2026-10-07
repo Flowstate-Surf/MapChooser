@@ -14,13 +14,15 @@ public class SetNextMapCommand
     private readonly PluginState _state;
     private readonly MapLister _mapLister;
     private readonly ChangeMapManager _changeMapManager;
+    private readonly MapChooserHudMenuService _hudMenu;
 
-    public SetNextMapCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, ChangeMapManager changeMapManager)
+    public SetNextMapCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, ChangeMapManager changeMapManager, MapChooserHudMenuService hudMenu)
     {
         _core = core;
         _state = state;
         _mapLister = mapLister;
         _changeMapManager = changeMapManager;
+        _hudMenu = hudMenu;
     }
 
     public void Execute(ICommandContext context)
@@ -34,7 +36,7 @@ public class SetNextMapCommand
             var player = context.Sender!;
             if (string.IsNullOrEmpty(mapNameArg))
             {
-                var menu = new SetNextMapMenu(_core, _mapLister);
+                var menu = new SetNextMapMenu(_core, _mapLister, _hudMenu);
                 menu.Show(player, (p, selectedMap) =>
                 {
                     _changeMapManager.ScheduleMapChange(selectedMap);

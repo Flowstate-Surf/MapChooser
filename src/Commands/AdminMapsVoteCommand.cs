@@ -15,14 +15,16 @@ public class AdminMapsVoteCommand
     private readonly MapLister _mapLister;
     private readonly EndOfMapVoteManager _eofManager;
     private readonly MapChangerConfig _config;
+    private readonly MapChooserHudMenuService _hudMenu;
 
-    public AdminMapsVoteCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, EndOfMapVoteManager eofManager, MapChangerConfig config)
+    public AdminMapsVoteCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, EndOfMapVoteManager eofManager, MapChangerConfig config, MapChooserHudMenuService hudMenu)
     {
         _core = core;
         _state = state;
         _mapLister = mapLister;
         _eofManager = eofManager;
         _config = config;
+        _hudMenu = hudMenu;
     }
 
     public void Execute(ICommandContext context)
@@ -34,7 +36,7 @@ public class AdminMapsVoteCommand
         }
 
         var player = context.Sender!;
-        var menu = new AdminMapsVoteMenu(_core, _mapLister, _config.Nomination);
+        var menu = new AdminMapsVoteMenu(_core, _mapLister, _config.Nomination, _hudMenu);
         menu.Show(player, (p, maps) =>
         {
             _eofManager.StartCustomVote(maps, _config.EndOfMap.VoteDuration, false);

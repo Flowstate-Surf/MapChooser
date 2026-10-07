@@ -1,26 +1,30 @@
 using MapChanger.Models;
 using MapChanger.Dependencies;
 using MapChanger.Helpers;
-using SwiftlyS2.Core.Menus.OptionsBase;
 using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.Players;
-using System.Threading.Tasks;
 
 namespace MapChanger.Menu;
 
+/// <summary>
+/// HudKit-based !votemap picker. Ported off the native MenusAPI. Eligible maps (excluding the
+/// current map, cooldowns, and player-count-gated entries) are paged by the HUD menu service.
+/// </summary>
 public class VotemapMenu
 {
     private readonly ISwiftlyCore _core;
     private readonly MapLister _mapLister;
     private readonly MapCooldown _mapCooldown;
     private readonly NominationConfig _nominationConfig;
+    private readonly MapChooserHudMenuService _hudMenu;
 
-    public VotemapMenu(ISwiftlyCore core, MapLister mapLister, MapCooldown mapCooldown, NominationConfig nominationConfig)
+    public VotemapMenu(ISwiftlyCore core, MapLister mapLister, MapCooldown mapCooldown, NominationConfig nominationConfig, MapChooserHudMenuService hudMenu)
     {
         _core = core;
         _mapLister = mapLister;
         _mapCooldown = mapCooldown;
         _nominationConfig = nominationConfig;
+        _hudMenu = hudMenu;
     }
 
     public void Show(IPlayer player, Action<IPlayer, string> onVote)
@@ -29,35 +33,21 @@ public class VotemapMenu
         var currentMapName = _core.ConVar.FindAsString("mapname")?.ValueAsString;
         var playerCount = _core.PlayerManager.GetAllPlayers()
             .Count(p => p.IsValid && !p.IsFakeClient);
+
         var eligible = MapFilter.Apply(
             _mapLister.Maps.Where(m =>
                 !(m.Id != null && !string.IsNullOrEmpty(currentMapName) && m.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase))
-                && !_mapCooldown.IsMapInCooldown(m)
                 && m.IsValidForPlayerCount(playerCount)),
             _nominationConfig);
 
-        var builder = _core.MenusAPI.CreateBuilder();
-        builder.Design.SetMenuTitle(localizer["map_chooser.votemap.title"] ?? "Vote for the next map:");
-        foreach (var map in eligible)
-        {
-            var option = new ButtonMenuOption($"<font color='lightgreen'>{map.Name}</font>");
-            option.Click += (sender, args) =>
-            {
-                _core.Scheduler.NextTick(() => {
-                    onVote(args.Player, map.Name);
-                    var currentMenu = _core.MenusAPI.GetCurrentMenu(args.Player);
-                    if (currentMenu != null)
-                    {
-                        _core.MenusAPI.CloseMenuForPlayer(args.Player, currentMenu);
-                    }
-                });
-                return ValueTask.CompletedTask;
-            };
+        // Cooldown maps stay visible but greyed out so players can see they exist.
+        var options = eligible
+            .Select(m => new MapChooserHudOption(
+                m.Name,
+                Enabled: !_mapCooldown.IsMapInCooldown(m),
+                p => onVote(p, m.Name)))
+            .ToList();
 
-            builder.AddOption(option);
-        }
-
-        var menu = builder.Build();
-        _core.MenusAPI.OpenMenuForPlayer(player, menu);
+        _hudMenu.Show(player, localizer["map_chooser.votemap.title"] ?? "Vote for the next map:", options);
     }
 }

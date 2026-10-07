@@ -1,7 +1,6 @@
 using MapChanger.Models;
 using MapChanger.Dependencies;
 using MapChanger.Helpers;
-using SwiftlyS2.Core.Menus.OptionsBase;
 using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.Commands;
 using SwiftlyS2.Shared.Players;
@@ -17,15 +16,17 @@ public class NominateCommand
     private readonly MapLister _mapLister;
     private readonly MapCooldown _mapCooldown;
     private readonly MapChangerConfig _config;
+    private readonly MapChooserHudMenuService _hudMenu;
 
 
-    public NominateCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, MapCooldown mapCooldown, MapChangerConfig config)
+    public NominateCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, MapCooldown mapCooldown, MapChangerConfig config, MapChooserHudMenuService hudMenu)
     {
         _core = core;
         _state = state;
         _mapLister = mapLister;
         _mapCooldown = mapCooldown;
         _config = config;
+        _hudMenu = hudMenu;
     }
 
     public void Execute(ICommandContext context)
@@ -62,7 +63,7 @@ public class NominateCommand
 
     private void OpenNominationMenu(IPlayer player)
     {
-        var menu = new NominateMenu(_core, _mapLister, _mapCooldown, _config.Nomination);
+        var menu = new NominateMenu(_core, _mapLister, _mapCooldown, _config.Nomination, _hudMenu);
         menu.Show(player, HandleNomination);
     }
 

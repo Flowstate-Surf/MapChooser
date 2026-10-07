@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -17,21 +17,47 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Public shared-interface contract (MapChanger.Contracts) - also ships HudKit.Shared (HudKit.Core's API) transitively. -->
+    <ProjectReference Include="contracts\MapChanger.Contracts\MapChanger.Contracts.csproj" />
+    <ProjectReference Include="..\..\swiftlys2plugs\cs2-hudkit-port\cs2-hudkit\HudKit\HudKit.Shared\HudKit.Shared.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" ExcludeAssets="runtime" PrivateAssets="all" />
-    <PackageReference Include="SwiftlyS2.CS2" Version="1.4.0-beta.7" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="SwiftlyS2.CS2" Version="1.4.11-beta.7" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- The contracts project lives under the repo root - keep its sources (and its obj/bin
+       generated files) out of THIS project's default globbing. -->
+  <ItemGroup>
+    <Compile Remove="contracts\**\*.cs" />
+    <Compile Remove="tests\**\*.cs" />
+    <EmbeddedResource Remove="contracts\**\*" />
+    <None Remove="contracts\**\*" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="resources/gamedata/**/*;resources/templates/**/*;resources/translations/**/*">
+    <Content Include="resources/gamedata/**/*;resources/templates/**/*;resources/translations/**/*;resources/layout/**/*;resources/styles/**/*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
-  <Target Name="CreateZip" AfterTargets="Publish">
+  <!-- Ship the contract DLL next to the plugin resources so consumer plugins can resolve it. -->
+  <Target Name="CopyContractsToExports" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)MapChanger.Contracts.dll"
+          DestinationFolder="$(OutputPath)resources/exports/"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(OutputPath)MapChanger.Contracts.dll')" />
+  </Target>
+  <Target Name="CopyContractsToPublishExports" AfterTargets="Publish">
+    <Copy SourceFiles="$(OutputPath)MapChanger.Contracts.dll"
+          DestinationFolder="$(PublishDir)resources/exports/"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(OutputPath)MapChanger.Contracts.dll')" />
+  </Target>
+
+  <Target Name="CreateZip" AfterTargets="Publish" Condition="'$(CreatePackageZip)' == 'true'">
     <ItemGroup>
       <PublishFiles Include="$(PublishDir)**\*.*" />
     </ItemGroup>

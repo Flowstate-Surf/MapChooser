@@ -11,6 +11,7 @@
   "map_chooser.rtv.change_scheduled": "Žemėlapio pakeitimas jau suplanuotas.",
   "map_chooser.vote.started": "Balsavimas prasidėjo! Balsuok už kitą žemėlapį.",
   "map_chooser.vote.title": "Balsuok už kitą žemėlapį:",
+  "map_chooser.vote.exit": "Išeiti",
   "map_chooser.vote.you_voted": "Balsavai už [green]{0}[default].",
   "map_chooser.vote.player_voted": "[green]{0}[default] balsavo už [green]{1}[default] [darkred]({2})",
   "map_chooser.vote.ended": "Balsavimas baigtas. Kitas žemėlapis bus [green]{0}[default] [darkred]({1} balsų).",

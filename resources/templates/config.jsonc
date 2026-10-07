@@ -80,6 +80,10 @@
             "CycleMenuPermission": "admin.changemap"
         },
         "AllowSpectatorsToVote": true,
+        // When true, the end-of-map vote menu has no Exit row — players must pick a map.
+        "DisableVoteMenuExit": false,
+        // Verbose vote-flow / map-change logging for debugging.
+        "DetailedLogging": false,
         // Set sv_mapgroup before every host_workshop_map call (e.g. "mg_surf"). Leave blank to skip.
         "MapGroup": "mg_surf",
         "SetNextMapPermission": "admin.changemap",

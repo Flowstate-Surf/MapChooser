@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    MapChanger.Contracts — public shared-interface contract for the MapChanger plugin.
+
+    Other plugins reference THIS assembly (shipped in MapChanger's resources/exports/) and call
+    IInterfaceManager.GetSharedInterface<IMapChangerApi>(IMapChangerApi.Identity) to read vote /
+    map-cycle state or drive map changes. References HudKit.Shared (HudKit.Core's public API) so
+    contract members can expose HudKit primitives directly.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>MapChanger.Contracts</RootNamespace>
+    <AssemblyName>MapChanger.Contracts</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SwiftlyS2.CS2" Version="1.4.11-beta.7" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- HudKit.Core's public API (contract assembly of the hudkit.core plugin). -->
+    <ProjectReference Include="..\..\..\..\swiftlys2plugs\cs2-hudkit-port\cs2-hudkit\HudKit\HudKit.Shared\HudKit.Shared.csproj" />
+  </ItemGroup>
+
+  <!-- Ship the contract DLL inside the plugin's resources/exports/ so consumer plugins can load it. -->
+  <Target Name="CopyContractToExports" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(MSBuildThisFileDirectory)..\..\resources\exports\"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

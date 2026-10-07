@@ -11,6 +11,7 @@
   "map_chooser.rtv.change_scheduled": "地图更换已安排。",
   "map_chooser.vote.started": "投票已开始！请选择下一张地图。",
   "map_chooser.vote.title": "投票选择下一张地图：",
+  "map_chooser.vote.exit": "退出",
   "map_chooser.vote.you_voted": "你投票给了 [green]{0}[default]。",
   "map_chooser.vote.player_voted": "[green]{0}[default] 投票给了 [green]{1}[default] [darkred]({2})",
   "map_chooser.vote.ended": "投票结束。下一张地图将是 [green]{0}[default] [darkred]({1} 票)。",

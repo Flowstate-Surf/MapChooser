@@ -13,13 +13,15 @@ public class AdminChangeMapCommand
     private readonly PluginState _state;
     private readonly MapLister _mapLister;
     private readonly ChangeMapManager _changeMapManager;
+    private readonly MapChooserHudMenuService _hudMenu;
 
-    public AdminChangeMapCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, ChangeMapManager changeMapManager)
+    public AdminChangeMapCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, ChangeMapManager changeMapManager, MapChooserHudMenuService hudMenu)
     {
         _core = core;
         _state = state;
         _mapLister = mapLister;
         _changeMapManager = changeMapManager;
+        _hudMenu = hudMenu;
     }
 
     public void Execute(ICommandContext context)
@@ -34,7 +36,7 @@ public class AdminChangeMapCommand
                 return;
             }
 
-            var menu = new AdminChangeMapMenu(_core, _mapLister);
+            var menu = new AdminChangeMapMenu(_core, _mapLister, _hudMenu);
             menu.Show(player, HandleChangeMap);
             return;
         }
